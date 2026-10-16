@@ -1,1 +1,3 @@
-<Solution />
+<Solution>
+  <Project Path="src/FlowDesk.Domain/FlowDesk.Domain.csproj" />
+</Solution>
