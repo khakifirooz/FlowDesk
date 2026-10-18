@@ -1,4 +1,5 @@
 <Solution>
   <Project Path="FlowDesk.Web/FlowDesk.Web.csproj" Id="3cf00608-f353-4d0b-afb9-715a62601fd1" />
+  <Project Path="src/FlowDesk.Application/FlowDesk.Application.csproj" Id="8bc9ce95-846a-4643-909d-aa725531a906" />
   <Project Path="src/FlowDesk.Domain/FlowDesk.Domain.csproj" />
 </Solution>

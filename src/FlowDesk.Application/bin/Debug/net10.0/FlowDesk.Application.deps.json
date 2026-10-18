@@ -1,0 +1,23 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v10.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v10.0": {
+      "FlowDesk.Application/1.0.0": {
+        "runtime": {
+          "FlowDesk.Application.dll": {}
+        }
+      }
+    }
+  },
+  "libraries": {
+    "FlowDesk.Application/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}

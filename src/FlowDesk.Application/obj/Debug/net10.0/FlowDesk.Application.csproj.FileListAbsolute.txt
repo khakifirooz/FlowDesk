@@ -1,0 +1,13 @@
+D:\FlowDesk\src\FlowDesk.Application\bin\Debug\net10.0\FlowDesk.Application.deps.json
+D:\FlowDesk\src\FlowDesk.Application\bin\Debug\net10.0\FlowDesk.Application.dll
+D:\FlowDesk\src\FlowDesk.Application\bin\Debug\net10.0\FlowDesk.Application.pdb
+D:\FlowDesk\src\FlowDesk.Application\obj\Debug\net10.0\FlowDesk.Application.GeneratedMSBuildEditorConfig.editorconfig
+D:\FlowDesk\src\FlowDesk.Application\obj\Debug\net10.0\FlowDesk.Application.AssemblyInfoInputs.cache
+D:\FlowDesk\src\FlowDesk.Application\obj\Debug\net10.0\FlowDesk.Application.AssemblyInfo.cs
+D:\FlowDesk\src\FlowDesk.Application\obj\Debug\net10.0\FlowDesk.Application.csproj.CoreCompileInputs.cache
+D:\FlowDesk\src\FlowDesk.Application\obj\Debug\net10.0\FlowDesk.Application.sourcelink.json
+D:\FlowDesk\src\FlowDesk.Application\obj\Debug\net10.0\FlowDesk.Application.dll
+D:\FlowDesk\src\FlowDesk.Application\obj\Debug\net10.0\refint\FlowDesk.Application.dll
+D:\FlowDesk\src\FlowDesk.Application\obj\Debug\net10.0\FlowDesk.Application.pdb
+D:\FlowDesk\src\FlowDesk.Application\obj\Debug\net10.0\ref\FlowDesk.Application.dll
+D:\FlowDesk\src\FlowDesk.Application\obj\Debug\net10.0\FlowDesk.5E634297.Up2Date
