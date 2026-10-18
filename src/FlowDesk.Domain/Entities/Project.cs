@@ -12,9 +12,8 @@ namespace FlowDesk.Domain.Entities
             {
                 throw new ArgumentException("Project name is required", nameof(name));
             }
-
+            // برای برداشتن فاصله و منظم کردن اون استرینگ trim
             Name = name.Trim();
-            /////////////
         }
     }
 }

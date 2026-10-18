@@ -1,0 +1,39 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v10.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v10.0": {
+      "FlowDesk.Web/1.0.0": {
+        "dependencies": {
+          "FlowDesk.Domain": "1.0.0"
+        },
+        "runtime": {
+          "FlowDesk.Web.dll": {}
+        }
+      },
+      "FlowDesk.Domain/1.0.0": {
+        "runtime": {
+          "FlowDesk.Domain.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "FlowDesk.Web/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "FlowDesk.Domain/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}
