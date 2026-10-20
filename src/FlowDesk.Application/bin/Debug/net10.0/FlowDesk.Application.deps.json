@@ -7,14 +7,30 @@
   "targets": {
     ".NETCoreApp,Version=v10.0": {
       "FlowDesk.Application/1.0.0": {
+        "dependencies": {
+          "FlowDesk.Domain": "1.0.0"
+        },
         "runtime": {
           "FlowDesk.Application.dll": {}
+        }
+      },
+      "FlowDesk.Domain/1.0.0": {
+        "runtime": {
+          "FlowDesk.Domain.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
         }
       }
     }
   },
   "libraries": {
     "FlowDesk.Application/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "FlowDesk.Domain/1.0.0": {
       "type": "project",
       "serviceable": false,
       "sha512": ""

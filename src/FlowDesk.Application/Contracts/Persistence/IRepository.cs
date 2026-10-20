@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Threading.Tasks;
-using FlowDesk.Domain.Common;
+﻿using FlowDesk.Domain.Common;
 
 namespace FlowDesk.Application.Contracts.Persistence;
 
@@ -13,5 +11,5 @@ public interface IRepository<TEntity>
 
     Task AddAsync(TEntity entity);
 
-    Task<bool>ExistsAsync(int id);
+    Task<bool> ExistsAsync(int id);
 }

@@ -11,3 +11,6 @@ D:\FlowDesk\src\FlowDesk.Application\obj\Debug\net10.0\refint\FlowDesk.Applicati
 D:\FlowDesk\src\FlowDesk.Application\obj\Debug\net10.0\FlowDesk.Application.pdb
 D:\FlowDesk\src\FlowDesk.Application\obj\Debug\net10.0\ref\FlowDesk.Application.dll
 D:\FlowDesk\src\FlowDesk.Application\obj\Debug\net10.0\FlowDesk.5E634297.Up2Date
+D:\FlowDesk\src\FlowDesk.Application\bin\Debug\net10.0\FlowDesk.Domain.dll
+D:\FlowDesk\src\FlowDesk.Application\bin\Debug\net10.0\FlowDesk.Domain.pdb
+D:\FlowDesk\src\FlowDesk.Application\obj\Debug\net10.0\FlowDesk.Application.csproj.AssemblyReference.cache
