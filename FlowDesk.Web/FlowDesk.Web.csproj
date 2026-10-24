@@ -7,7 +7,15 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\src\FlowDesk.Domain\FlowDesk.Domain.csproj" />
+    <ProjectReference Include="..\src\FlowDesk.Infrastructure\FlowDesk.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,7 +1,30 @@
+using FlowDesk.Application.Contracts.Persistence;
+using FlowDesk.Application.Contracts.Services;
+using FlowDesk.Application.Services;
+using FlowDesk.Infrastructure.Persistence;
+using FlowDesk.Infrastructure.Repositories;
+using Microsoft.EntityFrameworkCore;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+
+
+var connectionString =
+    builder.Configuration.GetConnectionString("FlowDeskConnection")
+    ?? throw new InvalidOperationException(
+        "Connection string 'FlowDeskConnection' was not found.");
+
+builder.Services.AddDbContext<FlowDeskDbContext>(options =>
+{
+    options.UseSqlServer(connectionString);
+});
+
+builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+builder.Services.AddScoped<IProjectService, ProjectService>();
+
 
 var app = builder.Build();
 
