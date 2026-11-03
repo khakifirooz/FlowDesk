@@ -8,20 +8,22 @@ namespace FlowDesk.Domain.Entities
 
         public Project(string name)
         {
-            if (string.IsNullOrWhiteSpace(name))
-            {
-                throw new ArgumentException("Project name is required", nameof(name));
-            }
-            Name = name.Trim();
+            Name = ValidateName(name);
         }
 
         public void Rename(string name)
         {
+            Name = ValidateName(name);
+        }
+        private static string ValidateName(string name)
+        {
             if (string.IsNullOrWhiteSpace(name))
             {
-                throw new ArgumentException("Project name is required", nameof(name));
+                throw new ArgumentException(
+                    "Project name is required.", nameof(name));
             }
-            Name = name.Trim();
+
+            return name.Trim();
         }
     }
 }

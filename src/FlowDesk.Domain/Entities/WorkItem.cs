@@ -21,7 +21,7 @@ namespace FlowDesk.Domain.Entities
                     nameof(projectId),"ProjectId must be greater than zero.");
             }
 
-            Title = title;
+            Title = ValidateTitle(title);
             ProjectId = projectId;
             Status = WorkItemStatus.ToDo;
         }
@@ -57,6 +57,22 @@ namespace FlowDesk.Domain.Entities
             }
 
             Status = WorkItemStatus.ToDo;
+        }
+
+        public void ChangeTitle(string title)
+        {
+            Title = ValidateTitle(title);
+        }
+
+        private static string ValidateTitle(string title)
+        {
+            if (string.IsNullOrWhiteSpace(title))
+            {
+                throw new ArgumentException(
+                    "Title is required.", nameof(title));
+            }
+
+            return title.Trim();
         }
     }
 }
