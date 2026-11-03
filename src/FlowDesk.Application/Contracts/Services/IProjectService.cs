@@ -5,4 +5,5 @@ namespace FlowDesk.Application.Contracts.Services;
 public interface IProjectService
 {
     Task<int> CreateAsync(CreateProjectDto input);
+    Task<List<ProjectListItemDto>> GetAllAsync();
 }

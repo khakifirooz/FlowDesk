@@ -24,4 +24,19 @@ public class ProjectService : IProjectService
         await _unitOfWork.SaveChangesAsync();
         return project.Id;
     }
+
+    public async Task<List<ProjectListItemDto>> GetAllAsync()
+    {
+        var projects = await _projectRepository.GetAllAsync();
+        var result = new List<ProjectListItemDto>();
+        foreach (var project in projects)
+        {
+            result.Add(new ProjectListItemDto
+            {
+                Id = project.Id,
+                Name = project.Name,
+            });
+        }
+        return result;
+    }
 }
