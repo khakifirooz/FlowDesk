@@ -24,6 +24,7 @@ builder.Services.AddDbContext<FlowDeskDbContext>(options =>
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IProjectService, ProjectService>();
+builder.Services.AddScoped<IWorkItemService, WorkItemService>();
 
 
 var app = builder.Build();

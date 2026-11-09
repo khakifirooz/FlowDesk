@@ -1,0 +1,35 @@
+﻿@model FlowDesk.Web.ViewModels.Projects.EditProjectViewModel
+
+@{
+    ViewData["Title"] = "ویرایش پروژه";
+}
+
+<div dir="rtl" class="container mt-4 text-end">
+    <h1 class="mb-4">ویرایش پروژه</h1>
+
+    <form asp-controller="Projects"
+          asp-action="Edit"
+          asp-route-id="@Model.Id"
+          method="post">
+
+        <input asp-for="Id" type="hidden" />
+
+        <div asp-validation-summary="All"
+             class="text-danger mb-3"></div>
+
+        <div class="mb-3">
+            <label asp-for="Name" class="form-label"></label>
+            <input asp-for="Name" class="form-control" />
+            <span asp-validation-for="Name"
+                  class="text-danger"></span>
+        </div>
+
+        <button type="submit" class="btn btn-primary">
+            ذخیرهٔ تغییرات
+        </button>
+
+        <a asp-action="Index" class="btn btn-outline-secondary">
+            انصراف
+        </a>
+    </form>
+</div>

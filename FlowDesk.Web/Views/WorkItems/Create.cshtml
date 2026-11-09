@@ -1,0 +1,60 @@
+﻿@model FlowDesk.Web.ViewModels.WorkItems.CreateWorkItemViewModel
+
+@{
+    ViewData["Title"] = "ایجاد تسک";
+}
+
+<div dir="rtl" class="container mt-4 text-end">
+    <h1 class="mb-4">ایجاد تسک</h1>
+
+    @if (Model.Projects.Count == 0)
+    {
+        <div class="alert alert-warning">
+            ابتدا یک پروژه بسازید.
+        </div>
+
+        <a asp-controller="Projects"
+           asp-action="Create"
+           class="btn btn-primary">
+            ایجاد پروژه
+        </a>
+    }
+    else
+    {
+        <form asp-controller="WorkItems"
+              asp-action="Create"
+              method="post">
+
+            <div asp-validation-summary="ModelOnly"
+                 class="text-danger mb-3"></div>
+
+            <div class="mb-3">
+                <label asp-for="Title" class="form-label"></label>
+                <input asp-for="Title" class="form-control" />
+                <span asp-validation-for="Title"
+                      class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="ProjectId" class="form-label"></label>
+
+                <select asp-for="ProjectId"
+                        asp-items="Model.Projects"
+                        class="form-select">
+                    <option value="" disabled hidden>انتخاب پروژه</option>
+                </select>
+
+                <span asp-validation-for="ProjectId"
+                      class="text-danger"></span>
+            </div>
+
+            <button type="submit" class="btn btn-primary">
+                ثبت تسک
+            </button>
+
+            <a asp-action="Index" class="btn btn-outline-secondary">
+                بازگشت به لیست
+            </a>
+        </form>
+    }
+</div>
