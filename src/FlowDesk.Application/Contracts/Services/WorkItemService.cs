@@ -123,4 +123,41 @@ public class WorkItemService : IWorkItemService
 
         await _unitOfWork.SaveChangesAsync();
     }
+
+    public async Task<List<WorkItemListItemDto>> SearchAsync(
+    WorkItemSearchDto input)
+    {
+        if (input.ProjectId.HasValue && input.ProjectId.Value <= 0)
+        {
+            throw new ArgumentException(
+                "شناسهٔ پروژه معتبر نیست.", nameof(input.ProjectId));
+        }
+
+        if (input.Status.HasValue &&
+            !Enum.IsDefined(typeof(WorkItemStatus), input.Status.Value))
+        {
+            throw new ArgumentException(
+                "وضعیت معتبر نیست.", nameof(input.Status));
+        }
+
+        string searchText = input.SearchText?.Trim() ?? string.Empty;
+        int? projectId = input.ProjectId;
+        WorkItemStatus? status = input.Status;
+
+        var workItems = await _workItemRepository.FindAsync(item =>
+            (searchText == "" || item.Title.Contains(searchText)) &&
+            (!projectId.HasValue || item.ProjectId == projectId.Value) &&
+            (!status.HasValue || item.Status == status.Value));
+
+        return workItems
+            .OrderByDescending(item => item.Id)
+            .Select(item => new WorkItemListItemDto
+            {
+                Id = item.Id,
+                Title = item.Title,
+                ProjectId = item.ProjectId,
+                Status = item.Status
+            })
+            .ToList();
+    }
 }

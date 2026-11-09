@@ -10,4 +10,6 @@ public interface IWorkItemService
     Task ChangeStatusAsync(int id, WorkItemStatus targetStatus);
     Task<WorkItemListItemDto?> GetByIdAsync(int id);
     Task ChangeTitleAsync(int id, string title);
+    Task<List<WorkItemListItemDto>> SearchAsync(
+    WorkItemSearchDto input);
 }

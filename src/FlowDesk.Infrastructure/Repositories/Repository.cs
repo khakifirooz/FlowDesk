@@ -2,6 +2,7 @@
 using FlowDesk.Domain.Common;
 using FlowDesk.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 
 namespace FlowDesk.Infrastructure.Repositories;
 
@@ -33,5 +34,13 @@ public class Repository<TEntity> : IRepository<TEntity>
     public async Task<bool> ExistsAsync(int id)
     {
        return await _context.Set<TEntity>().AnyAsync(x => x.Id == id);
+    }
+
+    public async Task<List<TEntity>> FindAsync(
+    Expression<Func<TEntity, bool>> predicate)
+    {
+        return await _context.Set<TEntity>()
+            .Where(predicate)
+            .ToListAsync();
     }
 }

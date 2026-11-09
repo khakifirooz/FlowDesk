@@ -21,16 +21,40 @@ public class WorkItemsController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> Index()
+    [HttpGet]
+    public async Task<IActionResult> Index(
+    WorkItemIndexViewModel model)
     {
-        var workItems = await _workItemService.GetAllAsync();
         var projects = await _projectService.GetAllAsync();
+
+        model.Projects = projects
+            .OrderBy(project => project.Name)
+            .Select(project => new SelectListItem
+            {
+                Value = project.Id.ToString(),
+                Text = project.Name
+            })
+            .ToList();
+
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
+
+        var input = new WorkItemSearchDto
+        {
+            SearchText = model.SearchText,
+            ProjectId = model.ProjectId,
+            Status = model.Status
+        };
+
+        var workItems = await _workItemService.SearchAsync(input);
 
         var projectNames = projects.ToDictionary(
             project => project.Id,
             project => project.Name);
 
-        var model = workItems.Select(item =>
+        model.Items = workItems.Select(item =>
             new WorkItemListItemViewModel
             {
                 Id = item.Id,
