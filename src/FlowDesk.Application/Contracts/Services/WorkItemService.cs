@@ -2,6 +2,7 @@
 using FlowDesk.Application.Contracts.Services;
 using FlowDesk.Application.DTOs.WorkItems;
 using FlowDesk.Domain.Entities;
+using FlowDesk.Domain.Enums;
 
 namespace FlowDesk.Application.Services;
 
@@ -55,5 +56,39 @@ public class WorkItemService : IWorkItemService
                 Status = item.Status
             })
             .ToList();
+    }
+
+    public async Task ChangeStatusAsync(
+    int id,
+    WorkItemStatus targetStatus)
+    {
+        var workItem = await _workItemRepository.GetByIdAsync(id);
+
+        if (workItem is null)
+        {
+            throw new KeyNotFoundException("تسک موردنظر پیدا نشد.");
+        }
+
+        switch (targetStatus)
+        {
+            case WorkItemStatus.InProgress:
+                workItem.Start();
+                break;
+
+            case WorkItemStatus.Done:
+                workItem.Complete();
+                break;
+
+            case WorkItemStatus.ToDo:
+                workItem.Reopen();
+                break;
+
+            default:
+                throw new ArgumentException(
+                    "وضعیت انتخاب‌شده معتبر نیست.",
+                    nameof(targetStatus));
+        }
+
+        await _unitOfWork.SaveChangesAsync();
     }
 }
