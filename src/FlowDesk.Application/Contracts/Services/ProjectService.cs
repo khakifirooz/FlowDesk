@@ -1,9 +1,8 @@
 ﻿using FlowDesk.Application.Contracts.Persistence;
-using FlowDesk.Application.Contracts.Services;
 using FlowDesk.Application.DTOs.Projects;
 using FlowDesk.Domain.Entities;
 
-namespace FlowDesk.Application.Services;
+namespace FlowDesk.Application.Contracts.Services;
 
 public class ProjectService : IProjectService
 {
@@ -38,5 +37,35 @@ public class ProjectService : IProjectService
             });
         }
         return result;
+    }
+
+    public async Task<ProjectListItemDto?> GetByIdAsync(int id)
+    {
+        var project = await _projectRepository.GetByIdAsync(id);
+
+        if (project is null)
+        {
+            return null;
+        }
+
+        return new ProjectListItemDto
+        {
+            Id = project.Id,
+            Name = project.Name
+        };
+    }
+
+    public async Task RenameAsync(int id, string name)
+    {
+        var project = await _projectRepository.GetByIdAsync(id);
+
+        if (project is null)
+        {
+            throw new KeyNotFoundException("پروژه پیدا نشد.");
+        }
+
+        project.Rename(name);
+
+        await _unitOfWork.SaveChangesAsync();
     }
 }

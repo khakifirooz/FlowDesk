@@ -91,4 +91,36 @@ public class WorkItemService : IWorkItemService
 
         await _unitOfWork.SaveChangesAsync();
     }
+
+    public async Task<WorkItemListItemDto?> GetByIdAsync(int id)
+    {
+        var workItem = await _workItemRepository.GetByIdAsync(id);
+
+        if (workItem is null)
+        {
+            return null;
+        }
+
+        return new WorkItemListItemDto
+        {
+            Id = workItem.Id,
+            Title = workItem.Title,
+            ProjectId = workItem.ProjectId,
+            Status = workItem.Status
+        };
+    }
+
+    public async Task ChangeTitleAsync(int id, string title)
+    {
+        var workItem = await _workItemRepository.GetByIdAsync(id);
+
+        if (workItem is null)
+        {
+            throw new KeyNotFoundException("تسک پیدا نشد.");
+        }
+
+        workItem.ChangeTitle(title);
+
+        await _unitOfWork.SaveChangesAsync();
+    }
 }
