@@ -43,4 +43,37 @@ public class Repository<TEntity> : IRepository<TEntity>
             .Where(predicate)
             .ToListAsync();
     }
+
+    public async Task<int> CountAsync(
+    Expression<Func<TEntity, bool>> predicate)
+    {
+        return await _context.Set<TEntity>()
+            .CountAsync(predicate);
+    }
+
+    public async Task<List<TEntity>> GetPageAsync(
+        Expression<Func<TEntity, bool>> predicate,
+        int pageNumber,
+        int pageSize)
+    {
+        if (pageNumber < 1)
+            throw new ArgumentOutOfRangeException(nameof(pageNumber));
+
+        if (pageSize < 1 || pageSize > 100)
+            throw new ArgumentOutOfRangeException(nameof(pageSize));
+
+        return await _context.Set<TEntity>()
+            .AsNoTracking()
+            .Where(predicate)
+            .OrderByDescending(entity => entity.Id)
+            .Skip(checked((pageNumber - 1) * pageSize))
+            .Take(pageSize)
+            .ToListAsync();
+    }
+
+    public void Remove(TEntity entity)
+    {
+        _context.Set<TEntity>().Remove(entity);
+    }
+
 }

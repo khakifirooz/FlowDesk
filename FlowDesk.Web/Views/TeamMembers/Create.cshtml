@@ -1,0 +1,36 @@
+﻿@model FlowDesk.Web.ViewModels.TeamMembers.CreateTeamMemberViewModel
+
+@{
+    ViewData["Title"] = "ثبت عضو تیم";
+}
+
+<div dir="rtl" class="container mt-4 text-end">
+    <h1 class="mb-4">ثبت عضو تیم</h1>
+
+    <form asp-controller="TeamMembers"
+          asp-action="Create"
+          method="post">
+
+        <div asp-validation-summary="ModelOnly"
+             class="text-danger mb-3"></div>
+
+        <div class="mb-3">
+            <label asp-for="FullName" class="form-label"></label>
+
+            <input asp-for="FullName"
+                   class="form-control"
+                   autocomplete="name" />
+
+            <span asp-validation-for="FullName"
+                  class="text-danger"></span>
+        </div>
+
+        <button type="submit" class="btn btn-primary">
+            ثبت عضو
+        </button>
+
+        <a asp-action="Index" class="btn btn-outline-secondary">
+            بازگشت
+        </a>
+    </form>
+</div>

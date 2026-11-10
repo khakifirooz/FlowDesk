@@ -46,6 +46,14 @@
                               class="btn btn-sm btn-outline-primary">
                               ویرایش
                           </a>
+
+                          <a asp-controller="ProjectMembers"
+                            asp-action="Index"
+                            asp-route-projectId="@project.Id"
+                            class="btn btn-outline-primary btn-sm">
+                            اعضای پروژه
+                          </a>
+
                         </td>
                     </tr>
                 }

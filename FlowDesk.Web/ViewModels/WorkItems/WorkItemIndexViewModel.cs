@@ -25,4 +25,19 @@ public class WorkItemIndexViewModel
     [BindNever]
     [ValidateNever]
     public List<WorkItemListItemViewModel> Items { get; set; } = new();
+
+    public int PageNumber { get; set; } = 1;
+
+    [BindNever]
+    public int TotalCount { get; set; }
+
+    [BindNever]
+    public int PageSize { get; set; } = 10;
+
+    public int TotalPages =>
+        Math.Max(1, (int)Math.Ceiling(TotalCount / (double)PageSize));
+
+    public bool HasPreviousPage => PageNumber > 1;
+
+    public bool HasNextPage => PageNumber < TotalPages;
 }

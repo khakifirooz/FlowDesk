@@ -20,6 +20,8 @@
         <div asp-validation-summary="All"
              class="text-danger mb-2"></div>
 
+        <input type="hidden" name="PageNumber" value="1" />
+
         <div class="row g-3">
             <div class="col-md-5">
                 <label asp-for="SearchText" class="form-label">
@@ -77,7 +79,8 @@
     </form>
 
     <p class="text-muted">
-        تعداد نتایج: @Model.Items.Count
+        تعداد کل نتایج: @Model.TotalCount
+        — تعداد این صفحه: @Model.Items.Count
     </p>
 
     @if (TempData["SuccessMessage"] is string successMessage)
@@ -193,5 +196,43 @@
                 </tbody>
             </table>
         </div>
+    }
+
+    @if (Model.TotalCount > 0)
+    {
+        <nav dir="rtl"
+             aria-label="صفحه‌بندی تسک‌ها"
+             class="d-flex align-items-center gap-3 mt-3">
+
+            @if (Model.HasPreviousPage)
+            {
+                <a asp-controller="WorkItems"
+                   asp-action="Index"
+                   asp-route-PageNumber="@(Model.PageNumber - 1)"
+                   asp-route-SearchText="@Model.SearchText"
+                   asp-route-ProjectId="@Model.ProjectId"
+                   asp-route-Status="@Model.Status"
+                   class="btn btn-outline-primary">
+                    صفحهٔ قبل
+                </a>
+            }
+
+            <span>
+                صفحهٔ @Model.PageNumber از @Model.TotalPages
+            </span>
+
+            @if (Model.HasNextPage)
+            {
+                <a asp-controller="WorkItems"
+                   asp-action="Index"
+                   asp-route-PageNumber="@(Model.PageNumber + 1)"
+                   asp-route-SearchText="@Model.SearchText"
+                   asp-route-ProjectId="@Model.ProjectId"
+                   asp-route-Status="@Model.Status"
+                   class="btn btn-outline-primary">
+                    صفحهٔ بعد
+                </a>
+            }
+        </nav>
     }
 </div>

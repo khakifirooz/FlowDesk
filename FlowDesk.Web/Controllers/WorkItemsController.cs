@@ -22,6 +22,7 @@ public class WorkItemsController : Controller
 
     [HttpGet]
     [HttpGet]
+    [HttpGet]
     public async Task<IActionResult> Index(
     WorkItemIndexViewModel model)
     {
@@ -38,6 +39,7 @@ public class WorkItemsController : Controller
 
         if (!ModelState.IsValid)
         {
+            model.PageNumber = 1;
             return View(model);
         }
 
@@ -45,16 +47,21 @@ public class WorkItemsController : Controller
         {
             SearchText = model.SearchText,
             ProjectId = model.ProjectId,
-            Status = model.Status
+            Status = model.Status,
+            PageNumber = model.PageNumber
         };
 
-        var workItems = await _workItemService.SearchAsync(input);
+        var result = await _workItemService.SearchAsync(input);
+
+        model.TotalCount = result.TotalCount;
+        model.PageNumber = result.PageNumber;
+        model.PageSize = result.PageSize;
 
         var projectNames = projects.ToDictionary(
             project => project.Id,
             project => project.Name);
 
-        model.Items = workItems.Select(item =>
+        model.Items = result.Items.Select(item =>
             new WorkItemListItemViewModel
             {
                 Id = item.Id,

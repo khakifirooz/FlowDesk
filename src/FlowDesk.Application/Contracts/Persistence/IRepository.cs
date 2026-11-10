@@ -15,4 +15,14 @@ public interface IRepository<TEntity>
     Task<bool> ExistsAsync(int id);
     Task<List<TEntity>> FindAsync(
     Expression<Func<TEntity, bool>> predicate);
+    Task<int> CountAsync(
+    Expression<Func<TEntity, bool>> predicate);
+
+    Task<List<TEntity>> GetPageAsync(
+        Expression<Func<TEntity, bool>> predicate,
+        int pageNumber,
+        int pageSize);
+
+    void Remove(TEntity entity);
+
 } 

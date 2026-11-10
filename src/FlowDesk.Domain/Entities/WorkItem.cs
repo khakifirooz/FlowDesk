@@ -9,6 +9,8 @@ namespace FlowDesk.Domain.Entities
         public WorkItemStatus Status { get; private set; }
         public int ProjectId { get; private set; }
 
+        public int? AssignedProjectMemberId { get; private set; }
+
         public WorkItem(string title, int projectId)
         {
             if (string.IsNullOrWhiteSpace(title))
@@ -62,6 +64,31 @@ namespace FlowDesk.Domain.Entities
         public void ChangeTitle(string title)
         {
             Title = ValidateTitle(title);
+        }
+
+        public void AssignTo(ProjectMember projectMember)
+        {
+            ArgumentNullException.ThrowIfNull(projectMember);
+
+            if (projectMember.Id <= 0)
+            {
+                throw new ArgumentException(
+                    "Project membership must be saved before assignment.",
+                    nameof(projectMember));
+            }
+
+            if (projectMember.ProjectId != ProjectId)
+            {
+                throw new InvalidOperationException(
+                    "The assignee must belong to the same project.");
+            }
+
+            AssignedProjectMemberId = projectMember.Id;
+        }
+
+        public void Unassign()
+        {
+            AssignedProjectMemberId = null;
         }
 
         private static string ValidateTitle(string title)

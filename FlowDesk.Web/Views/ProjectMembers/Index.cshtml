@@ -1,0 +1,155 @@
+﻿@model FlowDesk.Web.ViewModels.ProjectMembers.ProjectMembersViewModel
+
+@{
+    ViewData["Title"] = "اعضای پروژه";
+}
+
+<div dir="rtl" class="container py-4 text-end">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2>اعضای پروژه</h2>
+            <p class="text-muted mb-0">@Model.ProjectName</p>
+        </div>
+
+        <a asp-controller="Projects"
+           asp-action="Index"
+           class="btn btn-outline-secondary">
+            بازگشت به پروژه‌ها
+        </a>
+    </div>
+
+    @if (TempData["SuccessMessage"] is string successMessage)
+    {
+        <div class="alert alert-success" role="alert">
+            @successMessage
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] is string errorMessage)
+    {
+        <div class="alert alert-danger" role="alert">
+            @errorMessage
+        </div>
+    }
+
+    <div asp-validation-summary="All"
+         class="text-danger mb-3"></div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title mb-3">افزودن عضو به پروژه</h5>
+
+            @if (Model.AvailableMembers.Count > 0)
+            {
+                <form asp-controller="ProjectMembers"
+                      asp-action="Add"
+                      method="post">
+
+                    <input type="hidden" asp-for="ProjectId" />
+
+                    <div class="row g-3 align-items-start">
+                        <div class="col-md-8">
+                            <label asp-for="TeamMemberId"
+                                   class="form-label"></label>
+
+                            <select asp-for="TeamMemberId"
+                                    asp-items="Model.AvailableMembers"
+                                    class="form-select">
+                                <option value="" disabled hidden>
+                                    انتخاب عضو
+                                </option>
+                            </select>
+
+                            <span asp-validation-for="TeamMemberId"
+                                  class="text-danger"></span>
+                        </div>
+
+                        <div class="col-md-4">
+                            <div class="form-label">&nbsp;</div>
+                            <button type="submit"
+                                    class="btn btn-primary w-100">
+                                افزودن به پروژه
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            }
+            else
+            {
+                <p class="text-muted">
+                    فردی برای افزودن وجود ندارد؛ هنوز فردی ثبت نشده
+                    یا همهٔ افراد موجود عضو این پروژه هستند.
+                </p>
+
+                <a asp-controller="TeamMembers"
+                   asp-action="Create"
+                   class="btn btn-outline-primary">
+                    ثبت فرد جدید
+                </a>
+            }
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            تعداد اعضای پروژه: @Model.Members.Count
+        </div>
+
+        <div class="card-body">
+            @if (Model.Members.Count == 0)
+            {
+                <p class="text-muted mb-0">
+                    هنوز عضوی به این پروژه اضافه نشده است.
+                </p>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>نام عضو</th>
+                                <th>عملیات</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            @foreach (var member in Model.Members)
+                            {
+                                <tr>
+                                    <td>@member.FullName</td>
+                                    <td>
+                                        <form asp-controller="ProjectMembers"
+                                              asp-action="Remove"
+                                              method="post"
+                                              onsubmit="return confirm('این عضو از پروژه حذف شود؟ خود فرد در سامانه باقی می‌ماند.');">
+
+                                            <input type="hidden"
+                                                   name="projectId"
+                                                   value="@Model.ProjectId" />
+
+                                            <input type="hidden"
+                                                   name="membershipId"
+                                                   value="@member.Id" />
+
+                                            <button type="submit"
+                                                    class="btn btn-outline-danger btn-sm">
+                                                حذف از پروژه
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

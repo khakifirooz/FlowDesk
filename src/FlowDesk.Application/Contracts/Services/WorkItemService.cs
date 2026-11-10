@@ -3,6 +3,8 @@ using FlowDesk.Application.Contracts.Services;
 using FlowDesk.Application.DTOs.WorkItems;
 using FlowDesk.Domain.Entities;
 using FlowDesk.Domain.Enums;
+using System.Linq.Expressions;
+using FlowDesk.Application.Common;
 
 namespace FlowDesk.Application.Services;
 
@@ -124,7 +126,7 @@ public class WorkItemService : IWorkItemService
         await _unitOfWork.SaveChangesAsync();
     }
 
-    public async Task<List<WorkItemListItemDto>> SearchAsync(
+    public async Task<PagedResult<WorkItemListItemDto>> SearchAsync(
     WorkItemSearchDto input)
     {
         if (input.ProjectId.HasValue && input.ProjectId.Value <= 0)
@@ -140,24 +142,41 @@ public class WorkItemService : IWorkItemService
                 "وضعیت معتبر نیست.", nameof(input.Status));
         }
 
+        const int pageSize = 10;
+
         string searchText = input.SearchText?.Trim() ?? string.Empty;
         int? projectId = input.ProjectId;
         WorkItemStatus? status = input.Status;
 
-        var workItems = await _workItemRepository.FindAsync(item =>
+        Expression<Func<WorkItem, bool>> predicate = item =>
             (searchText == "" || item.Title.Contains(searchText)) &&
             (!projectId.HasValue || item.ProjectId == projectId.Value) &&
-            (!status.HasValue || item.Status == status.Value));
+            (!status.HasValue || item.Status == status.Value);
 
-        return workItems
-            .OrderByDescending(item => item.Id)
-            .Select(item => new WorkItemListItemDto
-            {
-                Id = item.Id,
-                Title = item.Title,
-                ProjectId = item.ProjectId,
-                Status = item.Status
-            })
-            .ToList();
+        int totalCount = await _workItemRepository.CountAsync(predicate);
+
+        int totalPages = Math.Max(
+            1, (int)Math.Ceiling(totalCount / (double)pageSize));
+
+        int pageNumber = Math.Clamp(input.PageNumber, 1, totalPages);
+
+        var workItems = await _workItemRepository.GetPageAsync(
+            predicate, pageNumber, pageSize);
+
+        var items = workItems.Select(item => new WorkItemListItemDto
+        {
+            Id = item.Id,
+            Title = item.Title,
+            ProjectId = item.ProjectId,
+            Status = item.Status
+        }).ToList();
+
+        return new PagedResult<WorkItemListItemDto>
+        {
+            Items = items,
+            TotalCount = totalCount,
+            PageNumber = pageNumber,
+            PageSize = pageSize
+        };
     }
 }
