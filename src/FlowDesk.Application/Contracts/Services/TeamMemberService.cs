@@ -1,6 +1,7 @@
 ﻿using FlowDesk.Application.Contracts.Persistence;
 using FlowDesk.Application.Contracts.Services;
 using FlowDesk.Application.DTOs.TeamMembers;
+using FlowDesk.Domain.Common;
 using FlowDesk.Domain.Entities;
 
 namespace FlowDesk.Application.Services;
@@ -55,13 +56,61 @@ public class TeamMemberService : ITeamMemberService
             .ToList();
     }
 
+    public async Task<TeamMemberListItemDto?> GetByIdAsync(int id)
+    {
+        var member = await _memberRepository.GetByIdAsync(id);
+
+        if (member is null)
+        {
+            return null;
+        }
+
+        return new TeamMemberListItemDto
+        {
+            Id = member.Id,
+            FullName = member.FullName
+        };
+    }
+
+    public async Task RenameAsync(int id, string fullName)
+    {
+        var member = await _memberRepository.GetByIdAsync(id);
+
+        if (member is null)
+        {
+            throw new KeyNotFoundException(
+                "عضو پیدا نشد.");
+        }
+
+        string cleanName = TextRules.RequiredName(
+            fullName,
+            nameof(fullName),
+            "نام عضو");
+
+        int duplicateCount = await _memberRepository.CountAsync(
+            existing =>
+                existing.Id != id &&
+                existing.FullName == cleanName);
+
+        if (duplicateCount > 0)
+        {
+            throw new InvalidOperationException(
+                "عضو دیگری با این نام وجود دارد.");
+        }
+
+        member.Rename(cleanName);
+
+        await _unitOfWork.SaveChangesAsync();
+    }
+
     public async Task DeleteAsync(int id)
     {
         var member = await _memberRepository.GetByIdAsync(id);
 
         if (member is null)
         {
-            throw new KeyNotFoundException("عضو پیدا نشد.");
+            throw new KeyNotFoundException(
+                "عضو پیدا نشد.");
         }
 
         int membershipCount = await _projectMemberRepository.CountAsync(

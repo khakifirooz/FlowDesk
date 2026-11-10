@@ -27,7 +27,6 @@ D:\FlowDesk\FlowDesk.Web\obj\Debug\net10.0\scopedcss\bundle\FlowDesk.Web.styles.
 D:\FlowDesk\FlowDesk.Web\obj\Debug\net10.0\scopedcss\projectbundle\FlowDesk.Web.bundle.scp.css
 D:\FlowDesk\FlowDesk.Web\obj\Debug\net10.0\compressed\g838bzj1za-{0}-b9sayid5wm-b9sayid5wm.gz
 D:\FlowDesk\FlowDesk.Web\obj\Debug\net10.0\compressed\zqo8mbia2x-{0}-61n19gt1b8-61n19gt1b8.gz
-D:\FlowDesk\FlowDesk.Web\obj\Debug\net10.0\compressed\36dmwsezic-{0}-xtxxf3hu2r-xtxxf3hu2r.gz
 D:\FlowDesk\FlowDesk.Web\obj\Debug\net10.0\compressed\qkuk1bir76-{0}-bqjiyaj88i-bqjiyaj88i.gz
 D:\FlowDesk\FlowDesk.Web\obj\Debug\net10.0\compressed\qjab5drn4l-{0}-c2jlpeoesf-c2jlpeoesf.gz
 D:\FlowDesk\FlowDesk.Web\obj\Debug\net10.0\compressed\nqa8pl13f3-{0}-erw9l3u2r3-erw9l3u2r3.gz
@@ -285,3 +284,4 @@ D:\FlowDesk\FlowDesk.Web\bin\Debug\net10.0\FlowDesk.Application.dll
 D:\FlowDesk\FlowDesk.Web\bin\Debug\net10.0\FlowDesk.Infrastructure.dll
 D:\FlowDesk\FlowDesk.Web\bin\Debug\net10.0\FlowDesk.Infrastructure.pdb
 D:\FlowDesk\FlowDesk.Web\bin\Debug\net10.0\FlowDesk.Application.pdb
+D:\FlowDesk\FlowDesk.Web\obj\Debug\net10.0\compressed\36dmwsezic-{0}-ftk0qxijkb-ftk0qxijkb.gz

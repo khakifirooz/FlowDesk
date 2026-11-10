@@ -4,57 +4,133 @@
     ViewData["Title"] = "ایجاد تسک";
 }
 
-<div dir="rtl" class="container mt-4 text-end">
-    <h1 class="mb-4">ایجاد تسک</h1>
+<div class="page-head">
+    <div>
+        <span class="eyebrow">برنامه‌ریزی / کار جدید</span>
+        <h1>ایجاد تسک</h1>
+        <p>
+            پروژه را مشخص کنید و کار را به یکی از اعضای همان پروژه بسپارید.
+        </p>
+    </div>
 
+    <a asp-action="Index" class="btn btn-outline-secondary">
+        فهرست تسک‌ها
+    </a>
+</div>
+
+<section class="panel panel-pad form-panel">
     @if (Model.Projects.Count == 0)
     {
-        <div class="alert alert-warning">
-            ابتدا یک پروژه بسازید.
-        </div>
+        <div class="empty-state">
+            <h2>هنوز پروژه‌ای ندارید</h2>
+            <p>ابتدا پروژه و اعضای آن را ثبت کنید.</p>
 
-        <a asp-controller="Projects"
-           asp-action="Create"
-           class="btn btn-primary">
-            ایجاد پروژه
-        </a>
+            <a asp-controller="Projects"
+               asp-action="Create"
+               class="btn btn-primary">
+                ایجاد پروژه
+            </a>
+        </div>
     }
     else
     {
-        <form asp-controller="WorkItems"
-              asp-action="Create"
-              method="post">
+        <form asp-action="Create"
+              method="post"
+              data-cascade="create"
+              data-options-url="@Url.Action("ProjectOptions", "WorkItems")"
+              data-prevent-double-submit>
 
-            <div asp-validation-summary="ModelOnly"
-                 class="text-danger mb-3"></div>
+            <div asp-validation-summary="All"></div>
 
-            <div class="mb-3">
+            <div class="mb-4">
                 <label asp-for="Title" class="form-label"></label>
-                <input asp-for="Title" class="form-control" />
-                <span asp-validation-for="Title"
-                      class="text-danger"></span>
+
+                <input asp-for="Title"
+                       class="form-control"
+                       maxlength="200"
+                       placeholder="مثلاً طراحی صفحهٔ ورود" />
+
+                <span asp-validation-for="Title"></span>
+
+                <div class="form-text">
+                    عنوان تسک در همین پروژه باید متمایز باشد.
+                </div>
             </div>
 
-            <div class="mb-3">
-                <label asp-for="ProjectId" class="form-label"></label>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label asp-for="ProjectId"
+                           class="form-label"></label>
 
-                <select asp-for="ProjectId"
-                        asp-items="Model.Projects"
-                        class="form-select">
-                    <option value="" disabled hidden>انتخاب پروژه</option>
-                </select>
+                    <select asp-for="ProjectId"
+                            asp-items="Model.Projects"
+                            class="form-select"
+                            required
+                            data-project>
+                        <option value="" disabled hidden>
+                            انتخاب پروژه
+                        </option>
+                    </select>
 
-                <span asp-validation-for="ProjectId"
-                      class="text-danger"></span>
+                    <span asp-validation-for="ProjectId"></span>
+                </div>
+
+                <div class="col-md-6">
+                    <label asp-for="AssignedProjectMemberId"
+                           class="form-label"></label>
+
+                    <select asp-for="AssignedProjectMemberId"
+                            asp-items="Model.Members"
+                            class="form-select"
+                            required
+                            data-member
+                            disabled="@(Model.Members.Count == 0)">
+                        <option value="" disabled hidden>
+                            انتخاب مسئول
+                        </option>
+                    </select>
+
+                    <span asp-validation-for="AssignedProjectMemberId"></span>
+                </div>
             </div>
 
-            <button type="submit" class="btn btn-primary">
-                ثبت تسک
-            </button>
+            <p data-cascade-status
+               role="status"
+               aria-live="polite"
+               class="form-text mt-3">
+                @(Model.ProjectId.HasValue
+                    ? Model.Members.Count == 0
+                        ? "این پروژه عضوی ندارد؛ ابتدا یک عضو اضافه کنید."
+                        : "مسئول تسک را از اعضای پروژه انتخاب کنید."
+                    : "با انتخاب پروژه، فهرست مسئول‌ها نمایش داده می‌شود.")
+            </p>
 
-            <a asp-action="Index" class="btn btn-outline-secondary">
-                بازگشت به لیست
+            <a data-members-link
+               asp-controller="ProjectMembers"
+               asp-action="Index"
+               asp-route-projectId="@Model.ProjectId"
+               hidden="@(!Model.ProjectId.HasValue)">
+                مدیریت اعضای این پروژه ←
             </a>
+
+            <div class="form-actions">
+                <button type="submit"
+                        class="btn btn-primary"
+                        data-save
+                        disabled="@(Model.Members.Count == 0)">
+                    ثبت تسک
+                </button>
+
+                <a asp-action="Index"
+                   class="btn btn-outline-secondary">
+                    انصراف
+                </a>
+            </div>
         </form>
     }
-</div>
+</section>
+
+@section Scripts
+{
+    <partial name="_ValidationScriptsPartial" />
+}

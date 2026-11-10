@@ -13,4 +13,8 @@ public class WorkItemListItemViewModel
     public WorkItemStatus Status { get; set; }
 
     public string StatusText { get; set; } = string.Empty;
+
+    public int? AssignedProjectMemberId { get; set; }
+
+    public string AssignedMemberName { get; set; } = "بدون مسئول";
 }

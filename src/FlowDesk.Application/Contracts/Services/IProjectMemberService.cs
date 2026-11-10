@@ -9,4 +9,6 @@ public interface IProjectMemberService
     Task AddAsync(int projectId, int teamMemberId);
 
     Task RemoveAsync(int projectId, int membershipId);
+
+    Task<Dictionary<int, string>> GetNamesByIdsAsync(List<int> membershipIds);
 }

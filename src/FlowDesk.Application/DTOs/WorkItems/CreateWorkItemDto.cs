@@ -3,5 +3,8 @@
 public class CreateWorkItemDto
 {
     public string Title { get; set; } = string.Empty;
+
     public int ProjectId { get; set; }
+
+    public int AssignedProjectMemberId { get; set; }
 }

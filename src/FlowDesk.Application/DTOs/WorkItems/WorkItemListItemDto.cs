@@ -8,4 +8,5 @@ public class WorkItemListItemDto
     public string Title { get; set; } = string.Empty;
     public int ProjectId { get; set; }
     public WorkItemStatus Status { get; set; }
+    public int? AssignedProjectMemberId { get; set; }
 }

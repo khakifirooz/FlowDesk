@@ -1,16 +1,30 @@
-﻿using FlowDesk.Application.DTOs.WorkItems;
+﻿using FlowDesk.Application.Common;
+using FlowDesk.Application.DTOs.WorkItems;
 using FlowDesk.Domain.Enums;
-using FlowDesk.Application.Common;
 
 namespace FlowDesk.Application.Contracts.Services;
 
 public interface IWorkItemService
 {
     Task<int> CreateAsync(CreateWorkItemDto input);
+
     Task<List<WorkItemListItemDto>> GetAllAsync();
-    Task ChangeStatusAsync(int id, WorkItemStatus targetStatus);
+
     Task<WorkItemListItemDto?> GetByIdAsync(int id);
-    Task ChangeTitleAsync(int id, string title);
+
+    Task<List<WorkItemListItemDto>> GetByProjectIdAsync(int projectId);
+
     Task<PagedResult<WorkItemListItemDto>> SearchAsync(
-    WorkItemSearchDto input);
+        WorkItemSearchDto input);
+
+    Task ChangeTitleAsync(int id, string title);
+
+    Task ChangeStatusAsync(
+        int id,
+        WorkItemStatus targetStatus);
+
+    Task ChangeAssigneeAsync(
+        int id,
+        int projectId,
+        int projectMemberId);
 }

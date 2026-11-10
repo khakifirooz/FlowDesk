@@ -1,0 +1,167 @@
+﻿@model FlowDesk.Web.ViewModels.WorkItems.AssignWorkItemViewModel
+
+@{
+    ViewData["Title"] = "واگذاری تسک";
+}
+
+<div class="page-head">
+    <div>
+        <span class="eyebrow">همکاری / تقسیم مسئولیت</span>
+        <h1>واگذاری تسک</h1>
+        <p>پروژه، تسک و سپس مسئول انجام آن را انتخاب کنید.</p>
+    </div>
+
+    <a asp-action="Index" class="btn btn-outline-secondary">
+        فهرست تسک‌ها
+    </a>
+</div>
+
+<section class="panel panel-pad form-panel">
+    <div class="steps">
+        <span class="step"><b>۱</b> پروژه</span>
+        <span class="step"><b>۲</b> تسک</span>
+        <span class="step"><b>۳</b> مسئول</span>
+    </div>
+
+    @if (Model.Projects.Count == 0)
+    {
+        <div class="empty-state">
+            <h2>ابتدا یک پروژه بسازید</h2>
+
+            <p>
+                برای واگذاری کار، پروژه و اعضای آن باید ثبت شده باشند.
+            </p>
+
+            <a asp-controller="Projects"
+               asp-action="Create"
+               class="btn btn-primary">
+                ایجاد پروژه
+            </a>
+        </div>
+    }
+    else
+    {
+        <form asp-action="Assign"
+              asp-route-id=""
+              method="post"
+              data-cascade="assign"
+              data-options-url="@Url.Action("ProjectOptions", "WorkItems")"
+              data-prevent-double-submit>
+
+            <div asp-validation-summary="All"></div>
+
+            <div class="mb-3">
+                <label asp-for="ProjectId"
+                       class="form-label"></label>
+
+                <select asp-for="ProjectId"
+                        asp-items="Model.Projects"
+                        class="form-select"
+                        required
+                        data-project>
+                    <option value="" disabled hidden>
+                        انتخاب پروژه
+                    </option>
+                </select>
+
+                <span asp-validation-for="ProjectId"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Id"
+                       class="form-label"></label>
+
+                <select asp-for="Id"
+                        class="form-select"
+                        required
+                        data-task
+                        disabled="@(Model.WorkItems.Count == 0)">
+                    <option value="" disabled hidden>
+                        انتخاب تسک
+                    </option>
+
+                    @foreach (var item in Model.WorkItems)
+                    {
+                        <option value="@item.Id"
+                                data-assignee-id="@item.AssignedProjectMemberId">
+                            @item.Title
+                        </option>
+                    }
+                </select>
+
+                <span asp-validation-for="Id"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="AssignedProjectMemberId"
+                       class="form-label"></label>
+
+                <select asp-for="AssignedProjectMemberId"
+                        asp-items="Model.Members"
+                        class="form-select"
+                        required
+                        data-member
+                        disabled="@(Model.Members.Count == 0 || !Model.Id.HasValue)">
+                    <option value="" disabled hidden>
+                        انتخاب مسئول
+                    </option>
+                </select>
+
+                <span asp-validation-for="AssignedProjectMemberId"></span>
+
+                <div class="form-text">
+                    فقط اعضای پروژهٔ انتخاب‌شده نمایش داده می‌شوند.
+                </div>
+            </div>
+
+            <p data-cascade-status
+               role="status"
+               aria-live="polite"
+               class="form-text">
+                @(Model.ProjectId.HasValue
+                    ? Model.WorkItems.Count == 0
+                        ? "این پروژه هنوز تسکی ندارد."
+                        : Model.Members.Count == 0
+                            ? "این پروژه هنوز عضوی ندارد."
+                            : "تسک و مسئول را انتخاب کنید."
+                    : "برای شروع، یک پروژه انتخاب کنید.")
+            </p>
+
+            <div class="selection-help">
+                <a data-members-link
+                   asp-controller="ProjectMembers"
+                   asp-action="Index"
+                   asp-route-projectId="@Model.ProjectId"
+                   hidden="@(!Model.ProjectId.HasValue)">
+                    مدیریت اعضای این پروژه ←
+                </a>
+
+                <a data-create-task-link
+                   asp-action="Create"
+                   asp-route-projectId="@Model.ProjectId"
+                   hidden="@(!Model.ProjectId.HasValue)">
+                    ایجاد تسک در این پروژه ←
+                </a>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit"
+                        class="btn btn-primary"
+                        data-save
+                        disabled="@(Model.Members.Count == 0 || Model.WorkItems.Count == 0 || !Model.Id.HasValue)">
+                    ذخیرهٔ مسئول
+                </button>
+
+                <a asp-action="Index"
+                   class="btn btn-outline-secondary">
+                    انصراف
+                </a>
+            </div>
+        </form>
+    }
+</section>
+
+@section Scripts
+{
+    <partial name="_ValidationScriptsPartial" />
+}

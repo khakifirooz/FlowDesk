@@ -71,6 +71,10 @@ build_metadata.AdditionalFiles.CssScope =
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcVGVhbU1lbWJlcnNcSW5kZXguY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
+[D:/FlowDesk/FlowDesk.Web/Views/WorkItems/Assign.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcV29ya0l0ZW1zXEFzc2lnbi5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
 [D:/FlowDesk/FlowDesk.Web/Views/WorkItems/Create.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcV29ya0l0ZW1zXENyZWF0ZS5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 

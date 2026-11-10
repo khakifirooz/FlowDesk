@@ -101,4 +101,33 @@ public class ProjectMemberService : IProjectMemberService
         _projectMemberRepository.Remove(membership);
         await _unitOfWork.SaveChangesAsync();
     }
+
+    public async Task<Dictionary<int, string>> GetNamesByIdsAsync(
+    List<int> membershipIds)
+    {
+        if (membershipIds.Count == 0)
+            return new Dictionary<int, string>();
+
+        var memberships = await _projectMemberRepository.FindAsync(
+            x => membershipIds.Contains(x.Id));
+
+        if (memberships.Count == 0)
+            return new Dictionary<int, string>();
+
+        var memberIds = memberships
+            .Select(x => x.TeamMemberId)
+            .Distinct()
+            .ToList();
+
+        var members = await _teamMemberRepository.FindAsync(
+            x => memberIds.Contains(x.Id));
+
+        var namesByMemberId = members.ToDictionary(
+            x => x.Id,
+            x => x.FullName);
+
+        return memberships.ToDictionary(
+            x => x.Id,
+            x => namesByMemberId[x.TeamMemberId]);
+    }
 }
