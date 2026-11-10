@@ -1,0 +1,73 @@
+﻿@model List<FlowDesk.Web.ViewModels.TeamMembers.TeamMemberListItemViewModel>
+
+@{
+    ViewData["Title"] = "اعضای تیم";
+}
+
+<div dir="rtl" class="container mt-4 text-end">
+    <h1 class="mb-4">اعضای تیم</h1>
+
+    <a asp-action="Create" class="btn btn-primary mb-3">
+        ثبت عضو جدید
+    </a>
+
+    @if (TempData["SuccessMessage"] is string successMessage)
+    {
+        <div class="alert alert-success">
+            @successMessage
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] is string errorMessage)
+    {
+        <div class="alert alert-danger">
+            @errorMessage
+        </div>
+    }
+
+    @if (Model.Count == 0)
+    {
+        <div class="alert alert-info">
+            هنوز عضوی ثبت نشده است.
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>شناسه</th>
+                        <th>نام و نام خانوادگی</th>
+                        <th>عملیات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var member in Model)
+                    {
+                        <tr>
+                            <td>@member.Id</td>
+                            <td>@member.FullName</td>
+                            <td>
+                                <form asp-controller="TeamMembers"
+                                      asp-action="Delete"
+                                      method="post"
+                                      onsubmit="return confirm('آیا از حذف این عضو مطمئن هستید؟ این عملیات قابل بازگشت نیست.');">
+
+                                    <input type="hidden"
+                                           name="id"
+                                           value="@member.Id" />
+
+                                    <button type="submit"
+                                            class="btn btn-sm btn-outline-danger">
+                                        حذف
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
