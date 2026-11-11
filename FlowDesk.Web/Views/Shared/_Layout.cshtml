@@ -1,72 +1,57 @@
-﻿<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - FlowDesk.Web</title>
-    <script type="importmap"></script>
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <title>@ViewData["Title"] - FlowDesk</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.rtl.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/FlowDesk.Web.styles.css" asp-append-version="true" />
 </head>
 <body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">FlowDesk.Web</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-                        </li>
+    @{
+        var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+    }
+    <div class="fd-shell">
+        <header class="fd-header">
+            <div class="fd-container fd-header-inner">
+                <a class="fd-brand" asp-controller="Home" asp-action="Index"
+                   aria-label="FlowDesk - صفحه اصلی">
+                    <span class="fd-brand-logo" aria-hidden="true">F</span>
+                    <span class="fd-brand-copy">
+                        <strong>FlowDesk</strong>
+                        <small>مدیریت پروژه و کارهای تیم</small>
+                    </span>
+                </a>
 
-                        <li class="nav-item">
-                            <a class="nav-link text-dark"
-                               asp-controller="Projects"
-                               asp-action="Index">
-                                پروژه‌ها
-                            </a>
-                        </li>
-
-                        <li class="nav-item">
-                            <a class="nav-link text-dark"
-                               asp-controller="WorkItems"
-                               asp-action="Index">
-                                تسک‌ها
-                            </a>
-                        </li>
-
-                        <li class="nav-item">
-                            <a class="nav-link text-dark"
-                               asp-controller="TeamMembers"
-                               asp-action="Index">
-                                اعضای تیم
-                            </a>
-                        </li>
-
-                    </ul>
-                </div>
+                <nav class="fd-navigation" aria-label="ناوبری اصلی">
+                    <a class="fd-nav-link @(currentController == "Projects" || currentController == "ProjectMembers" ? "is-active" : "")"
+                       asp-controller="Projects" asp-action="Index">پروژه‌ها</a>
+                    <a class="fd-nav-link @(currentController == "WorkItems" && ViewContext.RouteData.Values["action"]?.ToString() != "Assign" ? "is-active" : "")"
+                       asp-controller="WorkItems" asp-action="Index">تسک‌ها</a>
+                    <a class="fd-nav-link @(currentController == "WorkItems" && ViewContext.RouteData.Values["action"]?.ToString() == "Assign" ? "is-active" : "")"
+                       asp-controller="WorkItems" asp-action="Assign">واگذاری تسک</a>
+                    <a class="fd-nav-link @(currentController == "TeamMembers" ? "is-active" : "")"
+                       asp-controller="TeamMembers" asp-action="Index">اعضای تیم</a>
+                </nav>
             </div>
-        </nav>
-    </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
+        </header>
+
+        <main class="fd-main" role="main">
+            <div class="fd-container">
+                @RenderBody()
+            </div>
         </main>
+
+        <footer class="fd-footer">
+            <div class="fd-container fd-footer-inner">
+                <span>FlowDesk</span>
+                <span class="fd-footer-separator" aria-hidden="true">•</span>
+                <span>مدیریت پروژه و کارهای تیم</span>
+            </div>
+        </footer>
     </div>
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2026 - FlowDesk.Web - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-        </div>
-    </footer>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>

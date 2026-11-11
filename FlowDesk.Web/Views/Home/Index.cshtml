@@ -1,8 +1,56 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+@{
+    ViewData["Title"] = "خانه";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<div class="fd-home">
+    <section class="fd-hero" aria-labelledby="home-title">
+        <div class="fd-hero-inner">
+            <span class="fd-eyebrow">فضای کاری تیم شما</span>
+            <h1 id="home-title">از برنامه تا انجام کار.</h1>
+            <p>
+                پروژه‌ها را بسازید، اعضای تیم را کنار هم قرار دهید و مسئول هر تسک را مشخص کنید.
+                وضعیت کارهای تیم را در یک جا دنبال کنید.
+            </p>
+            <a asp-controller="Projects"
+               asp-action="Index"
+               class="fd-hero-button">
+                مشاهدهٔ پروژه‌ها
+            </a>
+        </div>
+    </section>
+
+    <section class="fd-features" aria-label="بخش‌های اصلی FlowDesk">
+        <article class="fd-feature-card">
+            <span class="fd-step">۰۱ / برنامه‌ریزی</span>
+            <h2>پروژه‌ها</h2>
+            <p>برای هر پروژه نام مشخص و تیم مناسب انتخاب کنید.</p>
+            <a asp-controller="Projects"
+               asp-action="Create"
+               class="fd-feature-link">
+                ایجاد پروژه <span aria-hidden="true">←</span>
+            </a>
+        </article>
+
+        <article class="fd-feature-card">
+            <span class="fd-step">۰۲ / همکاری</span>
+            <h2>اعضای تیم</h2>
+            <p>افراد را ثبت کنید و به پروژه‌های مربوط اضافه کنید.</p>
+            <a asp-controller="TeamMembers"
+               asp-action="Index"
+               class="fd-feature-link">
+                مشاهدهٔ اعضا <span aria-hidden="true">←</span>
+            </a>
+        </article>
+
+        <article class="fd-feature-card">
+            <span class="fd-step">۰۳ / پیگیری</span>
+            <h2>تسک‌ها و مسئولیت‌ها</h2>
+            <p>مسئول را انتخاب کنید و وضعیت انجام هر کار را ببینید.</p>
+            <a asp-controller="WorkItems"
+               asp-action="Index"
+               class="fd-feature-link">
+                مشاهدهٔ تسک‌ها <span aria-hidden="true">←</span>
+            </a>
+        </article>
+    </section>
 </div>
