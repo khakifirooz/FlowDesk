@@ -4,60 +4,120 @@
     ViewData["Title"] = "پروژه‌ها";
 }
 
-<div dir="rtl" class="container mt-4 text-end">
-    <h1 class="mb-4">پروژه‌ها</h1>
+<div class="page-head">
+    <div>
+        <span class="eyebrow">فضای کاری / پروژه‌ها</span>
 
-    <a asp-controller="Projects"
-       asp-action="Create"
-       class="btn btn-primary mb-3">
+        <h1>پروژه‌های تیم</h1>
+
+        <p>
+            پروژه‌ها، اعضای هر پروژه و کارهای مربوط به آن را مدیریت کنید.
+        </p>
+    </div>
+
+    <a asp-action="Create" class="btn btn-primary">
         ایجاد پروژه
     </a>
+</div>
 
-    @if (TempData["SuccessMessage"] is string message)
-    {
-        <div class="alert alert-success">
-            @message
-        </div>
-    }
+@if (TempData["SuccessMessage"] is string successMessage)
+{
+    <div class="alert alert-success" role="status">
+        @successMessage
+    </div>
+}
+
+@if (TempData["ErrorMessage"] is string errorMessage)
+{
+    <div class="alert alert-danger" role="alert">
+        @errorMessage
+    </div>
+}
+
+<section class="panel">
+    <div class="panel-heading">
+        <h2>فهرست پروژه‌ها</h2>
+
+        <span class="count-pill">
+            @Model.Count پروژه
+        </span>
+    </div>
 
     @if (Model.Count == 0)
     {
-        <p>هنوز پروژه‌ای ثبت نشده است.</p>
+        <div class="empty-state">
+            <span class="empty-symbol" aria-hidden="true">◇</span>
+
+            <h2>اولین پروژه را شروع کنید</h2>
+
+            <p>
+                پس از ساخت پروژه، اعضا و تسک‌های آن را اضافه کنید.
+            </p>
+
+            <a asp-action="Create" class="btn btn-primary">
+                ایجاد پروژه
+            </a>
+        </div>
     }
     else
     {
-        <table class="table table-bordered">
-            <thead>
-                <tr>
-                    <th>شناسه</th>
-                    <th>نام پروژه</th>
-                    <th>عملیات</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var project in Model)
-                {
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
                     <tr>
-                        <td>@project.Id</td>
-                        <td>@project.Name</td>
-                        <td>
-                           <a asp-action="Edit"
-                              asp-route-id="@project.Id"
-                              class="btn btn-sm btn-outline-primary">
-                              ویرایش
-                          </a>
-
-                          <a asp-controller="ProjectMembers"
-                            asp-action="Index"
-                            asp-route-projectId="@project.Id"
-                            class="btn btn-outline-primary btn-sm">
-                            اعضای پروژه
-                          </a>
-
-                        </td>
+                        <th scope="col">شناسه</th>
+                        <th scope="col">نام پروژه</th>
+                        <th scope="col">عملیات</th>
                     </tr>
-                }
-            </tbody>
-        </table>
+                </thead>
+
+                <tbody>
+                    @foreach (var project in Model)
+                    {
+                        <tr>
+                            <td class="id-text">
+                                @project.Id
+                            </td>
+
+                            <td class="item-title">
+                                @project.Name
+                            </td>
+
+                            <td>
+                                <div class="row-actions">
+                                    <a asp-controller="WorkItems"
+                                       asp-action="Index"
+                                       asp-route-projectId="@project.Id"
+                                       class="btn btn-sm btn-outline-primary">
+                                        تسک‌ها
+                                    </a>
+
+                                    <a asp-controller="ProjectMembers"
+                                       asp-action="Index"
+                                       asp-route-projectId="@project.Id"
+                                       class="btn btn-sm btn-outline-primary">
+                                        اعضای پروژه
+                                    </a>
+
+                                    <a asp-controller="WorkItems"
+                                       asp-action="Assign"
+                                       asp-route-id=""
+                                       asp-route-projectId="@project.Id"
+                                       class="btn btn-sm btn-outline-primary">
+                                        واگذاری کار
+                                    </a>
+
+                                    <a asp-action="Edit"
+                                       asp-route-id="@project.Id"
+                                       class="btn btn-sm btn-outline-secondary">
+                                        ویرایش نام
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
     }
-</div>
+</section>

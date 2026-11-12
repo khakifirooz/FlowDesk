@@ -14,20 +14,19 @@ public class ProjectsController : Controller
         _projectService = projectService;
     }
 
+    [HttpGet]
     public async Task<IActionResult> Index()
     {
         var projects = await _projectService.GetAllAsync();
 
-        var model = new List<ProjectListItemViewModel>();
-
-        foreach (var project in projects)
-        {
-            model.Add(new ProjectListItemViewModel
+        var model = projects
+            .OrderByDescending(project => project.Id)
+            .Select(project => new ProjectListItemViewModel
             {
                 Id = project.Id,
                 Name = project.Name
-            });
-        }
+            })
+            .ToList();
 
         return View(model);
     }
@@ -37,9 +36,6 @@ public class ProjectsController : Controller
     {
         return View(new CreateProjectViewModel());
     }
-
-    [HttpGet]
-    
 
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -51,22 +47,39 @@ public class ProjectsController : Controller
             return View(model);
         }
 
-        var input = new CreateProjectDto
+        try
         {
-            Name = model.Name
-        };
+            var input = new CreateProjectDto
+            {
+                Name = model.Name
+            };
 
-        int projectId = await _projectService.CreateAsync(input);
+            int projectId = await _projectService.CreateAsync(input);
 
-        TempData["SuccessMessage"] =
-            $"پروژه با شناسهٔ {projectId} ثبت شد.";
+            TempData["SuccessMessage"] =
+                $"پروژه با شناسهٔ {projectId} ثبت شد.";
 
-        return RedirectToAction(nameof(Index));
+            return RedirectToAction(nameof(Index));
+        }
+        catch (Exception exception) when (
+            exception is ArgumentException or InvalidOperationException)
+        {
+            ModelState.AddModelError(
+                nameof(model.Name),
+                exception.Message);
+
+            return View(model);
+        }
     }
 
     [HttpGet]
     public async Task<IActionResult> Edit(int id)
     {
+        if (!ModelState.IsValid || id <= 0)
+        {
+            return BadRequest("شناسهٔ پروژه معتبر نیست.");
+        }
+
         var project = await _projectService.GetByIdAsync(id);
 
         if (project is null)
@@ -89,7 +102,7 @@ public class ProjectsController : Controller
         int id,
         EditProjectViewModel model)
     {
-        if (id != model.Id)
+        if (id <= 0 || id != model.Id)
         {
             return BadRequest("شناسهٔ پروژه معتبر نیست.");
         }
@@ -101,7 +114,9 @@ public class ProjectsController : Controller
 
         try
         {
-            await _projectService.RenameAsync(id, model.Name);
+            await _projectService.RenameAsync(
+                id,
+                model.Name);
 
             TempData["SuccessMessage"] = "نام پروژه ویرایش شد.";
 
@@ -111,14 +126,14 @@ public class ProjectsController : Controller
         {
             return NotFound("پروژه پیدا نشد.");
         }
-        catch (ArgumentException)
+        catch (Exception exception) when (
+            exception is ArgumentException or InvalidOperationException)
         {
             ModelState.AddModelError(
-                nameof(model.Name), "نام پروژه معتبر نیست.");
+                nameof(model.Name),
+                exception.Message);
 
             return View(model);
         }
     }
-
-
 }

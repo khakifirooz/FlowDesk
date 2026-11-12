@@ -1,35 +1,62 @@
 ﻿@model FlowDesk.Web.ViewModels.WorkItems.EditWorkItemViewModel
 
 @{
-    ViewData["Title"] = "ویرایش تسک";
+    ViewData["Title"] = "ویرایش عنوان تسک";
 }
 
-<div dir="rtl" class="container mt-4 text-end">
-    <h1 class="mb-4">ویرایش عنوان تسک</h1>
+<div class="page-head">
+    <div>
+        <span class="eyebrow">تسک‌ها / ویرایش عنوان</span>
 
+        <h1>ویرایش عنوان تسک</h1>
+
+        <p>عنوان کار باید در همین پروژه تکراری نباشد.</p>
+    </div>
+
+    <a asp-action="Index" class="btn btn-outline-secondary">
+        بازگشت به فهرست
+    </a>
+</div>
+
+<section class="panel panel-pad form-panel">
     <form asp-controller="WorkItems"
           asp-action="Edit"
           asp-route-id="@Model.Id"
-          method="post">
+          method="post"
+          data-prevent-double-submit>
 
         <input asp-for="Id" type="hidden" />
 
-        <div asp-validation-summary="All"
-             class="text-danger mb-3"></div>
+        <div asp-validation-summary="ModelOnly"></div>
 
-        <div class="mb-3">
+        <div class="mb-4">
             <label asp-for="Title" class="form-label"></label>
-            <input asp-for="Title" class="form-control" />
-            <span asp-validation-for="Title"
-                  class="text-danger"></span>
+
+            <input asp-for="Title"
+                   class="form-control"
+                   maxlength="200"
+                   autofocus />
+
+            <span asp-validation-for="Title"></span>
+
+            <div class="form-text">
+                حداکثر ۲۰۰ کاراکتر
+            </div>
         </div>
 
-        <button type="submit" class="btn btn-primary">
-            ذخیرهٔ تغییرات
-        </button>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">
+                ذخیرهٔ عنوان
+            </button>
 
-        <a asp-action="Index" class="btn btn-outline-secondary">
-            انصراف
-        </a>
+            <a asp-action="Index" class="btn btn-outline-secondary">
+                انصراف
+            </a>
+        </div>
     </form>
-</div>
+</section>
+
+@section Scripts
+{
+    <partial name="_ValidationScriptsPartial" />
+} 

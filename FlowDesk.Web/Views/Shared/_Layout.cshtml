@@ -1,75 +1,135 @@
-﻿<!DOCTYPE html>
-<html lang="en">
+﻿@{
+    string? currentController =
+        ViewContext.RouteData.Values["controller"]?.ToString();
+
+    string? currentAction =
+        ViewContext.RouteData.Values["action"]?.ToString();
+
+    bool projectsActive =
+        currentController is "Projects" or "ProjectMembers";
+
+    bool tasksActive =
+        currentController == "WorkItems" &&
+        currentAction != "Assign";
+
+    bool assignActive =
+        currentController == "WorkItems" &&
+        currentAction == "Assign";
+
+    bool membersActive =
+        currentController == "TeamMembers";
+}
+
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - FlowDesk.Web</title>
-    <script type="importmap"></script>
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/FlowDesk.Web.styles.css" asp-append-version="true" />
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0" />
+
+    <title>@ViewData["Title"] | FlowDesk</title>
+
+    <link rel="stylesheet"
+          href="~/lib/bootstrap/dist/css/bootstrap.rtl.min.css" />
+
+    <link rel="stylesheet"
+          href="~/css/site.css"
+          asp-append-version="true" />
 </head>
+
 <body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">FlowDesk.Web</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
+    <a class="skip-link" href="#main-content">
+        رفتن به محتوای صفحه
+    </a>
+
+    <header class="app-header">
+        <nav class="navbar navbar-expand-lg"
+             aria-label="منوی اصلی">
+
+            <div class="container">
+                <a class="navbar-brand brand"
+                   asp-controller="Home"
+                   asp-action="Index">
+
+                    <span class="brand-mark" aria-hidden="true">
+                        F
+                    </span>
+
+                    <span>
+                        <b dir="ltr">FlowDesk</b>
+                        <small>مدیریت پروژه و کارهای تیم</small>
+                    </span>
+                </a>
+
+                <button class="navbar-toggler"
+                        type="button"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#main-nav"
+                        aria-controls="main-nav"
+                        aria-expanded="false"
+                        aria-label="باز کردن منو">
+
                     <span class="navbar-toggler-icon"></span>
                 </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-                        </li>
 
-                        <li class="nav-item">
-                            <a class="nav-link text-dark"
-                               asp-controller="Projects"
-                               asp-action="Index">
-                                پروژه‌ها
-                            </a>
-                        </li>
+                <div class="collapse navbar-collapse" id="main-nav">
+                    <div class="navbar-nav ms-auto gap-lg-1">
 
-                        <li class="nav-item">
-                            <a class="nav-link text-dark"
-                               asp-controller="WorkItems"
-                               asp-action="Index">
-                                تسک‌ها
-                            </a>
-                        </li>
+                        <a class="nav-link @(projectsActive ? "active" : "")"
+                           asp-controller="Projects"
+                           asp-action="Index"
+                           aria-current="@(projectsActive ? "page" : null)">
+                            پروژه‌ها
+                        </a>
 
-                        <li class="nav-item">
-                            <a class="nav-link text-dark"
-                               asp-controller="TeamMembers"
-                               asp-action="Index">
-                                اعضای تیم
-                            </a>
-                        </li>
+                        <a class="nav-link @(tasksActive ? "active" : "")"
+                           asp-controller="WorkItems"
+                           asp-action="Index"
+                           aria-current="@(tasksActive ? "page" : null)">
+                            تسک‌ها
+                        </a>
 
-                    </ul>
+                        <a class="nav-link @(assignActive ? "active" : "")"
+                           asp-controller="WorkItems"
+                           asp-action="Assign"
+                           asp-route-id=""
+                           aria-current="@(assignActive ? "page" : null)">
+                            واگذاری تسک
+                        </a>
+
+                        <a class="nav-link @(membersActive ? "active" : "")"
+                           asp-controller="TeamMembers"
+                           asp-action="Index"
+                           aria-current="@(membersActive ? "page" : null)">
+                            اعضای تیم
+                        </a>
+
+                    </div>
                 </div>
             </div>
         </nav>
     </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
-    </div>
 
-    <footer class="border-top footer text-muted">
+    <main id="main-content" class="container app-main">
+        @RenderBody()
+    </main>
+
+    <footer class="app-footer">
         <div class="container">
-            &copy; 2026 - FlowDesk.Web - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+            <span dir="ltr">FlowDesk</span>
+            <span class="footer-separator" aria-hidden="true">•</span>
+            مدیریت پروژه و کارهای تیم
         </div>
     </footer>
+
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
+
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="~/js/site.js" asp-append-version="true"></script>
+
+    <script src="~/js/site.js"
+            asp-append-version="true"></script>
+
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

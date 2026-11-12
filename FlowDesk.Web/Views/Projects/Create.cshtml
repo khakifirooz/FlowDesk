@@ -4,31 +4,57 @@
     ViewData["Title"] = "ایجاد پروژه";
 }
 
-<div dir="rtl" class="container mt-4 text-end">
-    <h1 class="mb-4">ایجاد پروژه</h1>
+<div class="page-head">
+    <div>
+        <span class="eyebrow">پروژه‌ها / پروژهٔ جدید</span>
 
-    @if (TempData["SuccessMessage"] is string message)
-    {
-        <div class="alert alert-success">
-            @message
-        </div>
-    }
+        <h1>ایجاد پروژه</h1>
 
+        <p>یک نام روشن و متمایز برای پروژه انتخاب کنید.</p>
+    </div>
+
+    <a asp-action="Index" class="btn btn-outline-secondary">
+        بازگشت به فهرست
+    </a>
+</div>
+
+<section class="panel panel-pad form-panel">
     <form asp-controller="Projects"
           asp-action="Create"
-          method="post">
+          method="post"
+          data-prevent-double-submit>
 
-        <div class="mb-3">
+        <div asp-validation-summary="ModelOnly"></div>
+
+        <div class="mb-4">
             <label asp-for="Name" class="form-label"></label>
 
-            <input asp-for="Name" class="form-control" />
+            <input asp-for="Name"
+                   class="form-control"
+                   maxlength="200"
+                   placeholder="مثلاً طراحی سایت فروشگاه"
+                   autofocus />
 
-            <span asp-validation-for="Name"
-                  class="text-danger"></span>
+            <span asp-validation-for="Name"></span>
+
+            <div class="form-text">
+                نام پروژه باید غیرتکراری و حداکثر ۲۰۰ کاراکتر باشد.
+            </div>
         </div>
 
-        <button type="submit" class="btn btn-primary">
-            ثبت پروژه
-        </button>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">
+                ایجاد پروژه
+            </button>
+
+            <a asp-action="Index" class="btn btn-outline-secondary">
+                انصراف
+            </a>
+        </div>
     </form>
-</div>
+</section>
+
+@section Scripts
+{
+    <partial name="_ValidationScriptsPartial" />
+}
