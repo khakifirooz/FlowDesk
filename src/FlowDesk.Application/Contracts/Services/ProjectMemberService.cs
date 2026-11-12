@@ -27,107 +27,141 @@ public class ProjectMemberService : IProjectMemberService
         _unitOfWork = unitOfWork;
     }
 
-    public async Task<List<ProjectMemberListItemDto>>
-        GetByProjectIdAsync(int projectId)
+    public async Task<List<ProjectMemberListItemDto>> GetByProjectIdAsync(
+        int projectId)
     {
         var memberships = await _projectMemberRepository.FindAsync(
-            x => x.ProjectId == projectId);
+            membership => membership.ProjectId == projectId);
 
         if (memberships.Count == 0)
+        {
             return new List<ProjectMemberListItemDto>();
+        }
 
         var memberIds = memberships
-            .Select(x => x.TeamMemberId)
+            .Select(membership => membership.TeamMemberId)
+            .Distinct()
             .ToList();
 
         var members = await _teamMemberRepository.FindAsync(
-            x => memberIds.Contains(x.Id));
+            member => memberIds.Contains(member.Id));
 
         var namesById = members.ToDictionary(
-            x => x.Id,
-            x => x.FullName);
+            member => member.Id,
+            member => member.FullName);
 
         return memberships
-            .Select(x => new ProjectMemberListItemDto
+            .Select(membership => new ProjectMemberListItemDto
             {
-                Id = x.Id,
-                TeamMemberId = x.TeamMemberId,
-                FullName = namesById[x.TeamMemberId]
+                Id = membership.Id,
+                TeamMemberId = membership.TeamMemberId,
+                FullName = namesById[membership.TeamMemberId]
             })
-            .OrderBy(x => x.FullName)
-            .ThenBy(x => x.Id)
+            .OrderBy(member => member.FullName)
+            .ThenBy(member => member.Id)
             .ToList();
     }
 
-    public async Task AddAsync(int projectId, int teamMemberId)
+    public async Task AddAsync(
+        int projectId,
+        int teamMemberId)
     {
-        if (!await _projectRepository.ExistsAsync(projectId))
-            throw new KeyNotFoundException("Project was not found.");
+        bool projectExists =
+            await _projectRepository.ExistsAsync(projectId);
 
-        if (!await _teamMemberRepository.ExistsAsync(teamMemberId))
+        if (!projectExists)
+        {
+            throw new KeyNotFoundException(
+                "پروژه پیدا نشد.");
+        }
+
+        bool memberExists =
+            await _teamMemberRepository.ExistsAsync(teamMemberId);
+
+        if (!memberExists)
+        {
             throw new InvalidOperationException(
                 "فرد انتخاب‌شده وجود ندارد.");
+        }
 
         int duplicateCount = await _projectMemberRepository.CountAsync(
-            x => x.ProjectId == projectId &&
-                 x.TeamMemberId == teamMemberId);
+            membership =>
+                membership.ProjectId == projectId &&
+                membership.TeamMemberId == teamMemberId);
 
         if (duplicateCount > 0)
+        {
             throw new InvalidOperationException(
                 "این فرد قبلاً به پروژه اضافه شده است.");
+        }
 
-        var membership = new ProjectMember(projectId, teamMemberId);
+        var membership = new ProjectMember(
+            projectId,
+            teamMemberId);
 
         await _projectMemberRepository.AddAsync(membership);
         await _unitOfWork.SaveChangesAsync();
     }
 
-    public async Task RemoveAsync(int projectId, int membershipId)
+    public async Task RemoveAsync(
+        int projectId,
+        int membershipId)
     {
         var membership = await _projectMemberRepository
             .GetByIdAsync(membershipId);
 
-        if (membership is null || membership.ProjectId != projectId)
+        if (membership is null ||
+            membership.ProjectId != projectId)
+        {
             throw new KeyNotFoundException(
-                "Project membership was not found.");
+                "عضویت موردنظر در این پروژه پیدا نشد.");
+        }
 
         int assignedTaskCount = await _workItemRepository.CountAsync(
-            x => x.AssignedProjectMemberId == membershipId);
+            workItem =>
+                workItem.AssignedProjectMemberId == membershipId);
 
         if (assignedTaskCount > 0)
+        {
             throw new InvalidOperationException(
-                "این عضو تسک واگذارشده دارد. ابتدا مسئول تسک‌ها را تغییر بده یا واگذاری آن‌ها را لغو کن.");
+                "این عضو مسئول یک یا چند تسک است. ابتدا مسئول تمام تسک‌های او را به عضو دیگری تغییر دهید.");
+        }
 
         _projectMemberRepository.Remove(membership);
+
         await _unitOfWork.SaveChangesAsync();
     }
 
     public async Task<Dictionary<int, string>> GetNamesByIdsAsync(
-    List<int> membershipIds)
+        List<int> membershipIds)
     {
         if (membershipIds.Count == 0)
+        {
             return new Dictionary<int, string>();
+        }
 
         var memberships = await _projectMemberRepository.FindAsync(
-            x => membershipIds.Contains(x.Id));
+            membership => membershipIds.Contains(membership.Id));
 
         if (memberships.Count == 0)
+        {
             return new Dictionary<int, string>();
+        }
 
         var memberIds = memberships
-            .Select(x => x.TeamMemberId)
+            .Select(membership => membership.TeamMemberId)
             .Distinct()
             .ToList();
 
         var members = await _teamMemberRepository.FindAsync(
-            x => memberIds.Contains(x.Id));
+            member => memberIds.Contains(member.Id));
 
         var namesByMemberId = members.ToDictionary(
-            x => x.Id,
-            x => x.FullName);
+            member => member.Id,
+            member => member.FullName);
 
         return memberships.ToDictionary(
-            x => x.Id,
-            x => namesByMemberId[x.TeamMemberId]);
+            membership => membership.Id,
+            membership => namesByMemberId[membership.TeamMemberId]);
     }
 }

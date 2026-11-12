@@ -4,33 +4,60 @@
     ViewData["Title"] = "ثبت عضو تیم";
 }
 
-<div dir="rtl" class="container mt-4 text-end">
-    <h1 class="mb-4">ثبت عضو تیم</h1>
+<div class="page-head">
+    <div>
+        <span class="eyebrow">اعضای تیم / عضو جدید</span>
 
+        <h1>ثبت عضو تیم</h1>
+
+        <p>
+            پس از ثبت فرد، می‌توانید او را به پروژه‌های مربوط اضافه کنید.
+        </p>
+    </div>
+
+    <a asp-action="Index" class="btn btn-outline-secondary">
+        بازگشت به فهرست
+    </a>
+</div>
+
+<section class="panel panel-pad form-panel">
     <form asp-controller="TeamMembers"
           asp-action="Create"
-          method="post">
+          method="post"
+          data-prevent-double-submit>
 
-        <div asp-validation-summary="ModelOnly"
-             class="text-danger mb-3"></div>
+        <div asp-validation-summary="ModelOnly"></div>
 
-        <div class="mb-3">
+        <div class="mb-4">
             <label asp-for="FullName" class="form-label"></label>
 
             <input asp-for="FullName"
                    class="form-control"
-                   autocomplete="name" />
+                   maxlength="200"
+                   autocomplete="name"
+                   placeholder="نام و نام خانوادگی"
+                   autofocus />
 
-            <span asp-validation-for="FullName"
-                  class="text-danger"></span>
+            <span asp-validation-for="FullName"></span>
+
+            <div class="form-text">
+                حداکثر ۲۰۰ کاراکتر
+            </div>
         </div>
 
-        <button type="submit" class="btn btn-primary">
-            ثبت عضو
-        </button>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">
+                ثبت عضو
+            </button>
 
-        <a asp-action="Index" class="btn btn-outline-secondary">
-            بازگشت
-        </a>
+            <a asp-action="Index" class="btn btn-outline-secondary">
+                انصراف
+            </a>
+        </div>
     </form>
-</div>
+</section>
+
+@section Scripts
+{
+    <partial name="_ValidationScriptsPartial" />
+}

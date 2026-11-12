@@ -20,12 +20,13 @@ public class TeamMembersController : Controller
     {
         var members = await _teamMemberService.GetAllAsync();
 
-        var model = members.Select(member =>
-            new TeamMemberListItemViewModel
+        var model = members
+            .Select(member => new TeamMemberListItemViewModel
             {
                 Id = member.Id,
                 FullName = member.FullName
-            }).ToList();
+            })
+            .ToList();
 
         return View(model);
     }
@@ -71,7 +72,74 @@ public class TeamMembersController : Controller
         catch (InvalidOperationException exception)
         {
             ModelState.AddModelError(
-                nameof(model.FullName), exception.Message);
+                nameof(model.FullName),
+                exception.Message);
+
+            return View(model);
+        }
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Edit(int id)
+    {
+        if (!ModelState.IsValid || id <= 0)
+        {
+            return BadRequest("شناسهٔ عضو معتبر نیست.");
+        }
+
+        var member = await _teamMemberService.GetByIdAsync(id);
+
+        if (member is null)
+        {
+            return NotFound("عضو پیدا نشد.");
+        }
+
+        var model = new EditTeamMemberViewModel
+        {
+            Id = member.Id,
+            FullName = member.FullName
+        };
+
+        return View(model);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Edit(
+        EditTeamMemberViewModel model)
+    {
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
+
+        try
+        {
+            await _teamMemberService.RenameAsync(
+                model.Id,
+                model.FullName);
+
+            TempData["SuccessMessage"] = "نام عضو ویرایش شد.";
+
+            return RedirectToAction(nameof(Index));
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound("عضو پیدا نشد.");
+        }
+        catch (ArgumentException)
+        {
+            ModelState.AddModelError(
+                nameof(model.FullName),
+                "نام عضو معتبر نیست.");
+
+            return View(model);
+        }
+        catch (InvalidOperationException exception)
+        {
+            ModelState.AddModelError(
+                nameof(model.FullName),
+                exception.Message);
 
             return View(model);
         }
@@ -90,7 +158,7 @@ public class TeamMembersController : Controller
         {
             await _teamMemberService.DeleteAsync(id);
 
-            TempData["SuccessMessage"] = "عضو حذف شد.";
+            TempData["SuccessMessage"] = "عضو از سامانه حذف شد.";
         }
         catch (KeyNotFoundException)
         {

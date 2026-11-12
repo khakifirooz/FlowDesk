@@ -1,0 +1,65 @@
+﻿@model FlowDesk.Web.ViewModels.TeamMembers.EditTeamMemberViewModel
+
+@{
+    ViewData["Title"] = "ویرایش عضو";
+}
+
+<div class="page-head">
+    <div>
+        <span class="eyebrow">اعضای تیم / ویرایش</span>
+
+        <h1>ویرایش نام عضو</h1>
+
+        <p>
+            نام جدید در فهرست اعضا و مسئول تسک‌ها نمایش داده می‌شود.
+        </p>
+    </div>
+
+    <a asp-action="Index" class="btn btn-outline-secondary">
+        بازگشت به فهرست
+    </a>
+</div>
+
+<section class="panel panel-pad form-panel">
+    <form asp-controller="TeamMembers"
+          asp-action="Edit"
+          asp-route-id="@Model.Id"
+          method="post"
+          data-prevent-double-submit>
+
+        <input asp-for="Id" type="hidden" />
+
+        <div asp-validation-summary="All"></div>
+
+        <div class="mb-4">
+            <label asp-for="FullName" class="form-label"></label>
+
+            <input asp-for="FullName"
+                   class="form-control"
+                   maxlength="200"
+                   autocomplete="name"
+                   autofocus />
+
+            <span asp-validation-for="FullName"></span>
+
+            <div class="form-text">
+                نام انتخاب‌شده نباید با نام عضو دیگری تکراری باشد.
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">
+                ذخیرهٔ تغییرات
+            </button>
+
+            <a asp-action="Index" class="btn btn-outline-secondary">
+                انصراف
+            </a>
+        </div>
+    </form>
+</section>
+
+@section Scripts
+{
+    <partial name="_ValidationScriptsPartial" />
+}

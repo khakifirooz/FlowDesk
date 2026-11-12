@@ -4,65 +4,107 @@
     ViewData["Title"] = "اعضای تیم";
 }
 
-<div dir="rtl" class="container mt-4 text-end">
-    <h1 class="mb-4">اعضای تیم</h1>
+<div class="page-head">
+    <div>
+        <span class="eyebrow">تیم / افراد</span>
 
-    <a asp-action="Create" class="btn btn-primary mb-3">
+        <h1>اعضای تیم</h1>
+
+        <p>
+            افراد را ثبت کنید و از صفحهٔ هر پروژه به تیم آن اضافه کنید.
+        </p>
+    </div>
+
+    <a asp-action="Create" class="btn btn-primary">
         ثبت عضو جدید
     </a>
+</div>
 
-    @if (TempData["SuccessMessage"] is string successMessage)
-    {
-        <div class="alert alert-success">
-            @successMessage
-        </div>
-    }
+@if (TempData["SuccessMessage"] is string successMessage)
+{
+    <div class="alert alert-success" role="status">
+        @successMessage
+    </div>
+}
 
-    @if (TempData["ErrorMessage"] is string errorMessage)
-    {
-        <div class="alert alert-danger">
-            @errorMessage
-        </div>
-    }
+@if (TempData["ErrorMessage"] is string errorMessage)
+{
+    <div class="alert alert-danger" role="alert">
+        @errorMessage
+    </div>
+}
+
+<section class="panel">
+    <div class="panel-heading">
+        <h2>فهرست افراد</h2>
+
+        <span class="count-pill">
+            @Model.Count نفر
+        </span>
+    </div>
 
     @if (Model.Count == 0)
     {
-        <div class="alert alert-info">
-            هنوز عضوی ثبت نشده است.
+        <div class="empty-state">
+            <h2>هنوز عضوی ثبت نشده است</h2>
+
+            <p>
+                با ثبت اولین نفر، ساخت تیم را شروع کنید.
+            </p>
+
+            <a asp-action="Create" class="btn btn-primary">
+                ثبت عضو
+            </a>
         </div>
     }
     else
     {
         <div class="table-responsive">
-            <table class="table table-bordered table-hover align-middle">
+            <table class="table">
                 <thead>
                     <tr>
-                        <th>شناسه</th>
-                        <th>نام و نام خانوادگی</th>
-                        <th>عملیات</th>
+                        <th scope="col">شناسه</th>
+                        <th scope="col">نام و نام خانوادگی</th>
+                        <th scope="col">عملیات</th>
                     </tr>
                 </thead>
+
                 <tbody>
                     @foreach (var member in Model)
                     {
                         <tr>
-                            <td>@member.Id</td>
-                            <td>@member.FullName</td>
+                            <td class="id-text">
+                                @member.Id
+                            </td>
+
+                            <td class="item-title">
+                                @member.FullName
+                            </td>
+
                             <td>
-                                <form asp-controller="TeamMembers"
-                                      asp-action="Delete"
-                                      method="post"
-                                      onsubmit="return confirm('آیا از حذف این عضو مطمئن هستید؟ این عملیات قابل بازگشت نیست.');">
+                                <div class="row-actions">
+                                    <a asp-action="Edit"
+                                       asp-route-id="@member.Id"
+                                       class="btn btn-sm btn-outline-secondary">
+                                        ویرایش نام
+                                    </a>
 
-                                    <input type="hidden"
-                                           name="id"
-                                           value="@member.Id" />
+                                    <form asp-controller="TeamMembers"
+                                          asp-action="Delete"
+                                          method="post"
+                                          data-confirm="آیا این فرد از سامانه حذف شود؟"
+                                          data-prevent-double-submit>
 
-                                    <button type="submit"
-                                            class="btn btn-sm btn-outline-danger">
-                                        حذف
-                                    </button>
-                                </form>
+                                        <input type="hidden"
+                                               name="id"
+                                               value="@member.Id" />
+
+                                        <button type="submit"
+                                                class="btn btn-sm btn-outline-danger">
+                                            حذف فرد
+                                        </button>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                     }
@@ -70,4 +112,8 @@
             </table>
         </div>
     }
-</div>
+</section>
+
+<p class="form-text mt-3">
+    برای حذف کامل یک فرد، ابتدا باید عضویت او در همهٔ پروژه‌ها پایان یابد.
+</p>
