@@ -5,12 +5,16 @@ namespace FlowDesk.Infrastructure.Persistence;
 
 public class FlowDeskDbContext : DbContext
 {
-    public FlowDeskDbContext(DbContextOptions<FlowDeskDbContext> options) : base(options)
+    public FlowDeskDbContext(
+        DbContextOptions<FlowDeskDbContext> options)
+        : base(options)
     {
     }
 
     public DbSet<Project> Projects { get; set; }
+
     public DbSet<WorkItem> WorkItems { get; set; }
+
     public DbSet<TeamMember> TeamMembers { get; set; }
 
     public DbSet<ProjectMember> ProjectMembers { get; set; }
@@ -19,11 +23,45 @@ public class FlowDeskDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
+        modelBuilder.Entity<Project>()
+            .Property(project => project.Name)
+            .HasMaxLength(200)
+            .UseCollation("Latin1_General_100_CI_AS")
+            .IsRequired();
+
+        modelBuilder.Entity<Project>()
+            .HasIndex(project => project.Name)
+            .IsUnique();
+
+        modelBuilder.Entity<WorkItem>()
+            .Property(item => item.Title)
+            .HasMaxLength(200)
+            .UseCollation("Latin1_General_100_CI_AS")
+            .IsRequired();
+
+        modelBuilder.Entity<WorkItem>()
+            .HasIndex(item => new
+            {
+                item.ProjectId,
+                item.Title
+            })
+            .IsUnique();
+
         modelBuilder.Entity<WorkItem>()
             .HasOne<Project>()
             .WithMany()
             .HasForeignKey(item => item.ProjectId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<TeamMember>()
+            .Property(member => member.FullName)
+            .HasMaxLength(200)
+            .UseCollation("Latin1_General_100_CI_AS")
+            .IsRequired();
+
+        modelBuilder.Entity<TeamMember>()
+            .HasIndex(member => member.FullName)
+            .IsUnique();
 
         modelBuilder.Entity<ProjectMember>()
             .HasOne<Project>()
@@ -66,15 +104,5 @@ public class FlowDeskDbContext : DbContext
                 member.Id
             })
             .OnDelete(DeleteBehavior.Restrict);
-
-        modelBuilder.Entity<TeamMember>()
-            .Property(member => member.FullName)
-            .HasMaxLength(200)
-            .IsRequired();
-
-        modelBuilder.Entity<TeamMember>()
-            .HasIndex(member => member.FullName)
-            .IsUnique();
     }
-
 }

@@ -31,9 +31,14 @@ namespace FlowDesk.Infrastructure.Persistence.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)")
+                        .UseCollation("Latin1_General_100_CI_AS");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
 
                     b.ToTable("Projects");
                 });
@@ -73,7 +78,8 @@ namespace FlowDesk.Infrastructure.Persistence.Migrations
                     b.Property<string>("FullName")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("nvarchar(200)")
+                        .UseCollation("Latin1_General_100_CI_AS");
 
                     b.HasKey("Id");
 
@@ -102,11 +108,16 @@ namespace FlowDesk.Infrastructure.Persistence.Migrations
 
                     b.Property<string>("Title")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)")
+                        .UseCollation("Latin1_General_100_CI_AS");
 
                     b.HasKey("Id");
 
                     b.HasIndex("ProjectId", "AssignedProjectMemberId");
+
+                    b.HasIndex("ProjectId", "Title")
+                        .IsUnique();
 
                     b.ToTable("WorkItems");
                 });

@@ -8,13 +8,27 @@
         const save = form.querySelector("[data-save]");
         const message = form.querySelector("[data-cascade-status]");
 
+        if (!project || !member || !save || !message) return;
+
         let request = null;
         let loading = false;
 
+        const hasMembers = () => [...member.options].some(
+            option => option.value !== "" && !option.disabled
+        );
+
+        const restoreValue = (select, value) => {
+            if (!select) return;
+
+            const exists = [...select.options].some(
+                option => option.value === value && !option.disabled
+            );
+
+            select.value = exists ? value : "";
+        };
+
         const reset = (select, text) => {
-            if (!select) {
-                return;
-            }
+            if (!select) return;
 
             const option = new Option(text, "", true, true);
 
@@ -28,7 +42,8 @@
         const update = () => {
             member.disabled =
                 loading ||
-                member.options.length <= 1 ||
+                !project.value ||
+                !hasMembers() ||
                 (!!task && !task.value);
 
             save.disabled =
@@ -40,37 +55,34 @@
         };
 
         const updateLinks = () => {
-            const selectors = [
+            for (const selector of [
                 "[data-members-link]",
                 "[data-create-task-link]"
-            ];
-
-            for (const selector of selectors) {
+            ]) {
                 const link = form.querySelector(selector);
 
-                if (!link) {
-                    continue;
-                }
+                if (!link) continue;
 
                 link.hidden = !project.value;
 
                 if (project.value) {
                     const url = new URL(link.href, location.href);
 
-                    url.searchParams.set(
-                        "projectId",
-                        project.value
-                    );
+                    url.searchParams.set("projectId", project.value);
 
                     link.href = url.toString();
                 }
             }
         };
 
-        project.addEventListener("change", async () => {
-            if (request) {
-                request.abort();
-            }
+        const loadProjectOptions = async (preserveSelection = false) => {
+            const previousTask =
+                preserveSelection && task ? task.value : "";
+
+            const previousMember =
+                preserveSelection ? member.value : "";
+
+            request?.abort();
 
             const current = new AbortController();
             request = current;
@@ -79,12 +91,19 @@
             reset(task, "انتخاب تسک");
 
             updateLinks();
+            message.classList.remove("text-danger");
+
+            if (!project.value) {
+                loading = false;
+                message.textContent = "ابتدا یک پروژه انتخاب کنید.";
+                update();
+                return;
+            }
 
             loading = true;
             update();
 
             message.textContent = "در حال دریافت اطلاعات پروژه…";
-            message.classList.remove("text-danger");
 
             try {
                 const url = new URL(
@@ -104,6 +123,7 @@
 
                 const response = await fetch(url, {
                     signal: current.signal,
+                    cache: "no-store",
                     headers: {
                         Accept: "application/json"
                     }
@@ -115,8 +135,11 @@
 
                 const data = await response.json();
 
-                if (request !== current) {
-                    return;
+                if (request !== current) return;
+
+                if (!Array.isArray(data.members) ||
+                    (task && !Array.isArray(data.tasks))) {
+                    throw new Error("Invalid project options response.");
                 }
 
                 for (const person of data.members) {
@@ -141,24 +164,35 @@
                     task.disabled = data.tasks.length === 0;
                 }
 
-                if (data.members.length === 0) {
-                    message.textContent =
-                        "این پروژه عضوی ندارد؛ ابتدا عضو اضافه کنید.";
-                } else if (task && data.tasks.length === 0) {
-                    message.textContent =
-                        "این پروژه تسکی ندارد؛ ابتدا تسک ایجاد کنید.";
-                } else {
-                    message.textContent =
-                        "گزینه‌های مربوط به این پروژه آماده است.";
+                if (preserveSelection) {
+                    restoreValue(task, previousTask);
+
+                    const savedAssignee =
+                        task?.selectedOptions[0]
+                            ?.dataset.assigneeId || "";
+
+                    restoreValue(
+                        member,
+                        previousMember || savedAssignee
+                    );
                 }
+
+                message.textContent = data.members.length === 0
+                    ? "این پروژه عضوی ندارد؛ ابتدا عضو اضافه کنید."
+                    : task && data.tasks.length === 0
+                        ? "این پروژه تسکی ندارد؛ ابتدا تسک ایجاد کنید."
+                        : "مسئول را از اعضای همین پروژه انتخاب کنید.";
             } catch (error) {
                 if (error.name === "AbortError" ||
                     request !== current) {
                     return;
                 }
 
+                reset(member, "انتخاب مسئول");
+                reset(task, "انتخاب تسک");
+
                 message.textContent =
-                    "دریافت اطلاعات انجام نشد. پروژه را دوباره انتخاب کنید یا صفحه را تازه کنید.";
+                    "دریافت اطلاعات انجام نشد. صفحه را تازه کنید و دوباره تلاش کنید.";
 
                 message.classList.add("text-danger");
             } finally {
@@ -167,20 +201,17 @@
                     update();
                 }
             }
+        };
+
+        project.addEventListener("change", () => {
+            void loadProjectOptions();
         });
 
         task?.addEventListener("change", () => {
-            const previous =
+            const assigneeId =
                 task.selectedOptions[0]?.dataset.assigneeId || "";
 
-            const previousMemberExists = [...member.options].some(
-                option => option.value === previous
-            );
-
-            member.value = previousMemberExists
-                ? previous
-                : "";
-
+            restoreValue(member, assigneeId);
             update();
         });
 
@@ -188,16 +219,18 @@
 
         update();
         updateLinks();
+
+        // A project may already be selected before any change event occurs.
+        if (project.value && !hasMembers()) {
+            void loadProjectOptions(true);
+        }
     });
 
     document.addEventListener("submit", event => {
         const form = event.target;
 
-        if (!(form instanceof HTMLFormElement)) {
-            return;
-        }
-
-        if (event.defaultPrevented) {
+        if (!(form instanceof HTMLFormElement) ||
+            event.defaultPrevented) {
             return;
         }
 
