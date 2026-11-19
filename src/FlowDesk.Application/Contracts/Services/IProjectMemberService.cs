@@ -10,5 +10,10 @@ public interface IProjectMemberService
 
     Task RemoveAsync(int projectId, int membershipId);
 
+    Task SetAccountAsync(
+        int projectId,
+        int membershipId,
+        string? accountUserId);
+
     Task<Dictionary<int, string>> GetNamesByIdsAsync(List<int> membershipIds);
 }

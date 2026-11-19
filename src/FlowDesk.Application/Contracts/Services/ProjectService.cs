@@ -20,7 +20,7 @@ public class ProjectService : IProjectService
 
     public async Task<int> CreateAsync(CreateProjectDto input)
     {
-        var project = new Project(input.Name);
+        var project = Project.CreateManaged(input.Name, input.ManagerUserId);
 
         int duplicateCount = await _projectRepository.CountAsync(
             existing => existing.Name == project.Name);
@@ -40,35 +40,13 @@ public class ProjectService : IProjectService
     public async Task<List<ProjectListItemDto>> GetAllAsync()
     {
         var projects = await _projectRepository.GetAllAsync();
-
-        var result = new List<ProjectListItemDto>();
-
-        foreach (var project in projects)
-        {
-            result.Add(new ProjectListItemDto
-            {
-                Id = project.Id,
-                Name = project.Name
-            });
-        }
-
-        return result;
+        return projects.Select(ToListItem).ToList();
     }
 
     public async Task<ProjectListItemDto?> GetByIdAsync(int id)
     {
         var project = await _projectRepository.GetByIdAsync(id);
-
-        if (project is null)
-        {
-            return null;
-        }
-
-        return new ProjectListItemDto
-        {
-            Id = project.Id,
-            Name = project.Name
-        };
+        return project is null ? null : ToListItem(project);
     }
 
     public async Task RenameAsync(int id, string name)
@@ -77,19 +55,13 @@ public class ProjectService : IProjectService
 
         if (project is null)
         {
-            throw new KeyNotFoundException(
-                "پروژه پیدا نشد.");
+            throw new KeyNotFoundException("پروژه پیدا نشد.");
         }
 
-        string cleanName = TextRules.RequiredName(
-            name,
-            nameof(name),
-            "نام پروژه");
+        string cleanName = TextRules.RequiredName(name, nameof(name), "نام پروژه");
 
         int duplicateCount = await _projectRepository.CountAsync(
-            existing =>
-                existing.Id != id &&
-                existing.Name == cleanName);
+            existing => existing.Id != id && existing.Name == cleanName);
 
         if (duplicateCount > 0)
         {
@@ -98,7 +70,16 @@ public class ProjectService : IProjectService
         }
 
         project.Rename(cleanName);
-
         await _unitOfWork.SaveChangesAsync();
+    }
+
+    private static ProjectListItemDto ToListItem(Project project)
+    {
+        return new ProjectListItemDto
+        {
+            Id = project.Id,
+            Name = project.Name,
+            ManagerUserId = project.ManagerUserId
+        };
     }
 }

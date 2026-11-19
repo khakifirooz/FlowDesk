@@ -29,6 +29,10 @@ namespace FlowDesk.Infrastructure.Persistence.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("ManagerUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -51,6 +55,11 @@ namespace FlowDesk.Infrastructure.Persistence.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("AccountUserId")
+                        .IsConcurrencyToken()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
                     b.Property<int>("ProjectId")
                         .HasColumnType("int");
 
@@ -60,6 +69,10 @@ namespace FlowDesk.Infrastructure.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("TeamMemberId");
+
+                    b.HasIndex("ProjectId", "AccountUserId")
+                        .IsUnique()
+                        .HasFilter("[AccountUserId] IS NOT NULL");
 
                     b.HasIndex("ProjectId", "TeamMemberId")
                         .IsUnique();

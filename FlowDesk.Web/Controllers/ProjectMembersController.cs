@@ -1,24 +1,34 @@
-﻿using FlowDesk.Application.Contracts.Services;
+﻿using System.ComponentModel.DataAnnotations;
+using System.Security.Claims;
+using FlowDesk.Application.Contracts.Services;
+using FlowDesk.Application.DTOs.Projects;
+using FlowDesk.Infrastructure.Identity;
 using FlowDesk.Web.ViewModels.ProjectMembers;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace FlowDesk.Web.Controllers;
 
+[Authorize]
 public class ProjectMembersController : Controller
 {
     private readonly IProjectService _projectService;
     private readonly ITeamMemberService _teamMemberService;
     private readonly IProjectMemberService _projectMemberService;
+    private readonly UserManager<ApplicationUser> _userManager;
 
     public ProjectMembersController(
         IProjectService projectService,
         ITeamMemberService teamMemberService,
-        IProjectMemberService projectMemberService)
+        IProjectMemberService projectMemberService,
+        UserManager<ApplicationUser> userManager)
     {
         _projectService = projectService;
         _teamMemberService = teamMemberService;
         _projectMemberService = projectMemberService;
+        _userManager = userManager;
     }
 
     [HttpGet]
@@ -27,12 +37,12 @@ public class ProjectMembersController : Controller
         if (!ModelState.IsValid || projectId <= 0)
             return BadRequest();
 
-        var model = await BuildModelAsync(projectId);
+        var project = await _projectService.GetByIdAsync(projectId);
 
-        if (model is null)
+        if (project is null)
             return NotFound();
 
-        return View(model);
+        return View(await BuildModelAsync(project));
     }
 
     [HttpPost]
@@ -42,20 +52,23 @@ public class ProjectMembersController : Controller
         if (model.ProjectId <= 0)
             return BadRequest();
 
+        var project = await _projectService.GetByIdAsync(model.ProjectId);
+
+        if (project is null)
+            return NotFound();
+
+        if (!CanManage(project))
+            return Forbid();
+
         if (!ModelState.IsValid)
-            return await ShowIndexAsync(model);
+            return View(nameof(Index), await BuildModelAsync(project, model.TeamMemberId));
 
         try
         {
-            await _projectMemberService.AddAsync(
-                model.ProjectId,
-                model.TeamMemberId);
+            await _projectMemberService.AddAsync(project.Id, model.TeamMemberId);
 
             TempData["SuccessMessage"] = "عضو به پروژه اضافه شد.";
-
-            return RedirectToAction(
-                nameof(Index),
-                new { projectId = model.ProjectId });
+            return RedirectToAction(nameof(Index), new { projectId = project.Id });
         }
         catch (KeyNotFoundException)
         {
@@ -63,11 +76,8 @@ public class ProjectMembersController : Controller
         }
         catch (InvalidOperationException exception)
         {
-            ModelState.AddModelError(
-                nameof(model.TeamMemberId),
-                exception.Message);
-
-            return await ShowIndexAsync(model);
+            ModelState.AddModelError(nameof(model.TeamMemberId), exception.Message);
+            return View(nameof(Index), await BuildModelAsync(project, model.TeamMemberId));
         }
     }
 
@@ -78,13 +88,101 @@ public class ProjectMembersController : Controller
         if (!ModelState.IsValid || projectId <= 0 || membershipId <= 0)
             return BadRequest();
 
+        var project = await _projectService.GetByIdAsync(projectId);
+
+        if (project is null)
+            return NotFound();
+
+        if (!CanManage(project))
+            return Forbid();
+
         try
         {
-            await _projectMemberService.RemoveAsync(
-                projectId,
-                membershipId);
-
+            await _projectMemberService.RemoveAsync(project.Id, membershipId);
             TempData["SuccessMessage"] = "عضو از این پروژه حذف شد.";
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+        catch (InvalidOperationException exception)
+        {
+            TempData["ErrorMessage"] = exception.Message;
+        }
+
+        return RedirectToAction(nameof(Index), new { projectId = project.Id });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public Task<IActionResult> LinkAccount(
+        [FromForm] int projectId,
+        [FromForm] int membershipId,
+        [FromForm] string? email)
+    {
+        return ChangeAccountAsync(projectId, membershipId, email, unlink: false);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public Task<IActionResult> UnlinkAccount(
+        [FromForm] int projectId,
+        [FromForm] int membershipId)
+    {
+        return ChangeAccountAsync(projectId, membershipId, email: null, unlink: true);
+    }
+
+    private async Task<IActionResult> ChangeAccountAsync(
+        int projectId,
+        int membershipId,
+        string? email,
+        bool unlink)
+    {
+        if (!ModelState.IsValid || projectId <= 0 || membershipId <= 0)
+            return BadRequest();
+
+        var project = await _projectService.GetByIdAsync(projectId);
+
+        if (project is null)
+            return NotFound();
+
+        if (!CanManage(project))
+            return Forbid();
+
+        string? accountUserId = null;
+
+        if (!unlink)
+        {
+            email = email?.Trim();
+
+            if (string.IsNullOrWhiteSpace(email) || email.Length > 256 ||
+                !new EmailAddressAttribute().IsValid(email))
+            {
+                TempData["ErrorMessage"] = "یک ایمیل معتبر وارد کنید.";
+                return RedirectToAction(nameof(Index), new { projectId });
+            }
+
+            var account = await _userManager.FindByEmailAsync(email);
+
+            if (account is null)
+            {
+                TempData["ErrorMessage"] = "با این ایمیل حسابی ثبت نشده است.";
+                return RedirectToAction(nameof(Index), new { projectId });
+            }
+
+            accountUserId = account.Id;
+        }
+
+        try
+        {
+            await _projectMemberService.SetAccountAsync(
+                project.Id,
+                membershipId,
+                accountUserId);
+
+            TempData["SuccessMessage"] = unlink
+                ? "اتصال حساب از این عضویت برداشته شد."
+                : "حساب به این عضو پروژه متصل شد.";
         }
         catch (KeyNotFoundException)
         {
@@ -98,54 +196,47 @@ public class ProjectMembersController : Controller
         return RedirectToAction(nameof(Index), new { projectId });
     }
 
-    private async Task<IActionResult> ShowIndexAsync(
-        ProjectMembersViewModel input)
+    private bool CanManage(ProjectListItemDto project)
     {
-        var model = await BuildModelAsync(
-            input.ProjectId,
-            input.TeamMemberId);
+        string? userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-        if (model is null)
-            return NotFound();
-
-        return View("Index", model);
+        return User.Identity?.IsAuthenticated == true &&
+            !string.IsNullOrWhiteSpace(userId) &&
+            string.Equals(project.ManagerUserId, userId, StringComparison.Ordinal);
     }
 
-    private async Task<ProjectMembersViewModel?> BuildModelAsync(
-        int projectId,
+    private async Task<ProjectMembersViewModel> BuildModelAsync(
+        ProjectListItemDto project,
         int selectedMemberId = 0)
     {
-        var project = await _projectService.GetByIdAsync(projectId);
+        var memberships = await _projectMemberService.GetByProjectIdAsync(project.Id);
+        bool canManage = CanManage(project);
 
-        if (project is null)
-            return null;
-
-        var memberships = await _projectMemberService
-            .GetByProjectIdAsync(projectId);
-
-        var allMembers = await _teamMemberService.GetAllAsync();
-
-        var existingMemberIds = memberships
-            .Select(x => x.TeamMemberId)
-            .ToHashSet();
-
-        var availableMembers = allMembers
-            .Where(x => !existingMemberIds.Contains(x.Id))
-            .OrderBy(x => x.FullName)
-            .Select(x => new SelectListItem
-            {
-                Value = x.Id.ToString(),
-                Text = x.FullName
-            })
-            .ToList();
-
-        return new ProjectMembersViewModel
+        var model = new ProjectMembersViewModel
         {
             ProjectId = project.Id,
             ProjectName = project.Name,
+            CanManageMembers = canManage,
             TeamMemberId = selectedMemberId,
-            Members = memberships,
-            AvailableMembers = availableMembers
+            Members = memberships
         };
+
+        if (canManage)
+        {
+            var existingIds = memberships.Select(x => x.TeamMemberId).ToHashSet();
+            var allMembers = await _teamMemberService.GetAllAsync();
+
+            model.AvailableMembers = allMembers
+                .Where(x => !existingIds.Contains(x.Id))
+                .OrderBy(x => x.FullName)
+                .Select(x => new SelectListItem
+                {
+                    Value = x.Id.ToString(),
+                    Text = x.FullName
+                })
+                .ToList();
+        }
+
+        return model;
     }
 }

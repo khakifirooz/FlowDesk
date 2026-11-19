@@ -1,56 +1,44 @@
-﻿@{
+﻿@using FlowDesk.Infrastructure.Identity
+@using Microsoft.AspNetCore.Identity
+@inject UserManager<ApplicationUser> AccountManager
+
+@{
     string? currentController =
         ViewContext.RouteData.Values["controller"]?.ToString();
 
     string? currentAction =
         ViewContext.RouteData.Values["action"]?.ToString();
 
-    bool projectsActive =
-        currentController is "Projects" or "ProjectMembers";
-
-    bool tasksActive =
-        currentController == "WorkItems" &&
-        currentAction != "Assign";
-
-    bool assignActive =
-        currentController == "WorkItems" &&
-        currentAction == "Assign";
-
-    bool membersActive =
-        currentController == "TeamMembers";
+    bool projectsActive = currentController is "Projects" or "ProjectMembers";
+    bool tasksActive = currentController == "WorkItems" && currentAction != "Assign";
+    bool assignActive = currentController == "WorkItems" && currentAction == "Assign";
+    bool membersActive = currentController == "TeamMembers";
 
     bool signedIn = User.Identity?.IsAuthenticated == true;
+    var account = signedIn ? await AccountManager.GetUserAsync(User) : null;
+
+    string displayName =
+        account is not null && !string.IsNullOrWhiteSpace(account.FullName)
+            ? account.FullName
+            : "حساب کاربری";
 }
 
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0" />
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] | FlowDesk</title>
-
-    <link rel="stylesheet"
-          href="~/lib/bootstrap/dist/css/bootstrap.rtl.min.css" />
-
-    <link rel="stylesheet"
-          href="~/css/site.css"
-          asp-append-version="true" />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.rtl.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
-
 <body>
-    <a class="skip-link" href="#main-content">
-        رفتن به محتوای صفحه
-    </a>
+    <a class="skip-link" href="#main-content">رفتن به محتوای صفحه</a>
 
     <header class="app-header">
-        <nav class="navbar navbar-expand-lg"
-             aria-label="منوی اصلی">
+        <nav class="navbar navbar-expand-lg" aria-label="منوی اصلی">
             <div class="container">
-                <a class="navbar-brand brand"
-                   asp-controller="Home"
-                   asp-action="Index">
+                <a class="navbar-brand brand" asp-controller="Home" asp-action="Index">
                     <span class="brand-mark" aria-hidden="true">F</span>
                     <span>
                         <b dir="ltr">FlowDesk</b>
@@ -58,13 +46,9 @@
                     </span>
                 </a>
 
-                <button class="navbar-toggler"
-                        type="button"
-                        data-bs-toggle="collapse"
-                        data-bs-target="#main-nav"
-                        aria-controls="main-nav"
-                        aria-expanded="false"
-                        aria-label="باز کردن منو">
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                        data-bs-target="#main-nav" aria-controls="main-nav"
+                        aria-expanded="false" aria-label="باز کردن منو">
                     <span class="navbar-toggler-icon"></span>
                 </button>
 
@@ -73,47 +57,30 @@
                     {
                         <div class="navbar-nav ms-auto gap-lg-1">
                             <a class="nav-link @(projectsActive ? "active" : "")"
-                               asp-controller="Projects"
-                               asp-action="Index"
-                               aria-current="@(projectsActive ? "page" : null)">
-                                پروژه‌ها
-                            </a>
+                               asp-controller="Projects" asp-action="Index"
+                               aria-current="@(projectsActive ? "page" : null)">پروژه‌ها</a>
 
                             <a class="nav-link @(tasksActive ? "active" : "")"
-                               asp-controller="WorkItems"
-                               asp-action="Index"
-                               aria-current="@(tasksActive ? "page" : null)">
-                                تسک‌ها
-                            </a>
+                               asp-controller="WorkItems" asp-action="Index"
+                               aria-current="@(tasksActive ? "page" : null)">تسک‌ها</a>
 
                             <a class="nav-link @(assignActive ? "active" : "")"
-                               asp-controller="WorkItems"
-                               asp-action="Assign"
-                               asp-route-id=""
-                               aria-current="@(assignActive ? "page" : null)">
-                                واگذاری تسک
-                            </a>
+                               asp-controller="WorkItems" asp-action="Assign" asp-route-id=""
+                               aria-current="@(assignActive ? "page" : null)">واگذاری تسک</a>
 
                             <a class="nav-link @(membersActive ? "active" : "")"
-                               asp-controller="TeamMembers"
-                               asp-action="Index"
-                               aria-current="@(membersActive ? "page" : null)">
-                                اعضای تیم
-                            </a>
+                               asp-controller="TeamMembers" asp-action="Index"
+                               aria-current="@(membersActive ? "page" : null)">اعضای تیم</a>
                         </div>
 
                         <div class="d-flex flex-wrap align-items-center gap-3 mt-3 mt-lg-0">
                             <span class="small text-muted text-break">
-                                <bdi>@User.Identity?.Name</bdi>
+                                <bdi>@displayName</bdi>
                             </span>
 
-                            <form asp-controller="Account"
-                                  asp-action="Logout"
-                                  method="post"
-                                  class="m-0"
-                                  data-prevent-double-submit>
-                                <button type="submit"
-                                        class="btn btn-outline-secondary btn-sm">
+                            <form asp-controller="Account" asp-action="Logout"
+                                  method="post" class="m-0" data-prevent-double-submit>
+                                <button type="submit" class="btn btn-outline-secondary btn-sm">
                                     خروج
                                 </button>
                             </form>
@@ -122,17 +89,10 @@
                     else
                     {
                         <div class="d-flex gap-2 ms-auto mt-3 mt-lg-0">
-                            <a asp-controller="Account"
-                               asp-action="Login"
-                               class="btn btn-outline-primary">
-                                ورود
-                            </a>
-
-                            <a asp-controller="Account"
-                               asp-action="Register"
-                               class="btn btn-primary">
-                                ساخت حساب
-                            </a>
+                            <a asp-controller="Account" asp-action="Login"
+                               class="btn btn-outline-primary">ورود</a>
+                            <a asp-controller="Account" asp-action="Register"
+                               class="btn btn-primary">ساخت حساب</a>
                         </div>
                     }
                 </div>

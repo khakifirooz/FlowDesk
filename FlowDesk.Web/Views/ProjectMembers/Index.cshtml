@@ -7,119 +7,89 @@
 <div class="page-head">
     <div>
         <span class="eyebrow">پروژه / اعضا</span>
-
         <h1 class="text-break">@Model.ProjectName</h1>
-
-        <p>اعضای این پروژه را مدیریت کنید.</p>
+        <p>افراد عضو این پروژه را ببینید.</p>
     </div>
 
     <div class="d-flex flex-wrap gap-2">
-        <a asp-controller="WorkItems"
-           asp-action="Assign"
-           asp-route-id=""
-           asp-route-projectId="@Model.ProjectId"
-           class="btn btn-primary">
-            واگذاری تسک
-        </a>
+        <a asp-controller="WorkItems" asp-action="Assign"
+           asp-route-id="" asp-route-projectId="@Model.ProjectId"
+           class="btn btn-primary">واگذاری تسک</a>
 
-        <a asp-controller="Projects"
-           asp-action="Index"
-           class="btn btn-outline-secondary">
-            بازگشت به پروژه‌ها
-        </a>
+        <a asp-controller="Projects" asp-action="Index"
+           class="btn btn-outline-secondary">بازگشت به پروژه‌ها</a>
     </div>
 </div>
 
 @if (TempData["SuccessMessage"] is string successMessage)
 {
-    <div class="alert alert-success" role="status">
-        @successMessage
-    </div>
+    <div class="alert alert-success" role="status">@successMessage</div>
 }
 
 @if (TempData["ErrorMessage"] is string errorMessage)
 {
-    <div class="alert alert-danger" role="alert">
-        @errorMessage
-    </div>
+    <div class="alert alert-danger" role="alert">@errorMessage</div>
 }
 
 <div asp-validation-summary="All"></div>
 
+@if (!Model.CanManageMembers)
+{
+    <p class="alert alert-info">
+        مدیریت اعضا و اتصال حساب فقط برای مدیر این پروژه مجاز است.
+    </p>
+}
+
 <div class="row g-4">
-    <div class="col-lg-4">
-        <section class="panel panel-pad">
-            <h2 class="mb-3">افزودن عضو به پروژه</h2>
-
-            @if (Model.AvailableMembers.Count > 0)
-            {
-                <form asp-controller="ProjectMembers"
-                      asp-action="Add"
-                      method="post"
-                      data-prevent-double-submit>
-
-                    <input asp-for="ProjectId" type="hidden" />
-
-                    <div class="mb-3">
-                        <label asp-for="TeamMemberId"
-                               class="form-label"></label>
-
-                        <select asp-for="TeamMemberId"
-                                asp-items="Model.AvailableMembers"
-                                class="form-select"
-                                required>
-                            <option value="0" disabled hidden>
-                                انتخاب عضو
-                            </option>
-                        </select>
-
-                        <span asp-validation-for="TeamMemberId"></span>
-                    </div>
-
-                    <p class="form-text">
-                        فقط افرادی نمایش داده می‌شوند که هنوز عضو این پروژه نیستند.
-                    </p>
-
-                    <button type="submit"
-                            class="btn btn-primary w-100">
-                        افزودن به پروژه
-                    </button>
-                </form>
-            }
-            else
-            {
-                <p>
-                    فردی برای افزودن وجود ندارد؛ همهٔ افراد موجود عضو این
-                    پروژه هستند یا هنوز فردی ثبت نشده است.
+    @if (Model.CanManageMembers)
+    {
+        <div class="col-lg-4">
+            <section class="panel panel-pad">
+                <h2 class="mb-3">افزودن عضو به پروژه</h2>
+                <p class="form-text">
+                    بعد از افزودن فرد، می‌توانید حساب ثبت‌نام‌شدهٔ او را از فهرست تیم وصل کنید.
                 </p>
 
-                <a asp-controller="TeamMembers"
-                   asp-action="Create"
-                   class="btn btn-outline-primary">
-                    ثبت فرد جدید
-                </a>
-            }
-        </section>
-    </div>
+                @if (Model.AvailableMembers.Count > 0)
+                {
+                    <form asp-action="Add" method="post" data-prevent-double-submit>
+                        <input asp-for="ProjectId" type="hidden" />
 
-    <div class="col-lg-8">
+                        <div class="mb-3">
+                            <label asp-for="TeamMemberId" class="form-label"></label>
+                            <select asp-for="TeamMemberId" asp-items="Model.AvailableMembers"
+                                    class="form-select" required>
+                                <option value="0" disabled hidden>انتخاب عضو</option>
+                            </select>
+                            <span asp-validation-for="TeamMemberId"></span>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100">
+                            افزودن به پروژه
+                        </button>
+                    </form>
+                }
+                else
+                {
+                    <p>فرد دیگری برای افزودن به پروژه وجود ندارد.</p>
+                    <a asp-controller="TeamMembers" asp-action="Create"
+                       class="btn btn-outline-primary">ثبت فرد جدید</a>
+                }
+            </section>
+        </div>
+    }
+
+    <div class="@(Model.CanManageMembers ? "col-lg-8" : "col-12")">
         <section class="panel">
             <div class="panel-heading">
                 <h2>تیم پروژه</h2>
-
-                <span class="count-pill">
-                    @Model.Members.Count نفر
-                </span>
+                <span class="count-pill">@Model.Members.Count نفر</span>
             </div>
 
             @if (Model.Members.Count == 0)
             {
                 <div class="empty-state">
-                    <h2>تیم پروژه هنوز خالی است</h2>
-
-                    <p>
-                        از فرم افزودن عضو، افراد این پروژه را انتخاب کنید.
-                    </p>
+                    <h2>هنوز عضوی به این پروژه اضافه نشده است</h2>
                 </div>
             }
             else
@@ -129,7 +99,11 @@
                         <thead>
                             <tr>
                                 <th scope="col">نام عضو</th>
-                                <th scope="col">عملیات</th>
+                                @if (Model.CanManageMembers)
+                                {
+                                    <th scope="col">حساب ورود</th>
+                                    <th scope="col">عملیات</th>
+                                }
                             </tr>
                         </thead>
 
@@ -137,24 +111,66 @@
                             @foreach (var member in Model.Members)
                             {
                                 <tr>
-                                    <td class="item-title">
-                                        @member.FullName
-                                    </td>
+                                    <td class="item-title">@member.FullName</td>
 
-                                    <td>
-                                        <div class="row-actions">
-                                            <form asp-controller="ProjectMembers"
-                                                  asp-action="Remove"
-                                                  method="post"
-                                                  data-confirm="این عضو از پروژه حذف شود؟ فرد در سامانه و پروژه‌های دیگر باقی می‌ماند."
+                                    @if (Model.CanManageMembers)
+                                    {
+                                        <td>
+                                            @if (member.HasLinkedAccount)
+                                            {
+                                                <span class="badge text-bg-success">متصل</span>
+
+                                                <form asp-action="UnlinkAccount" method="post" class="mt-2"
+                                                      data-confirm="اتصال حساب این عضو از پروژه برداشته شود؟"
+                                                      data-prevent-double-submit>
+                                                    <input type="hidden" name="projectId"
+                                                           value="@Model.ProjectId" />
+                                                    <input type="hidden" name="membershipId"
+                                                           value="@member.Id" />
+
+                                                    <button type="submit"
+                                                            class="btn btn-sm btn-outline-secondary">
+                                                        قطع اتصال
+                                                    </button>
+                                                </form>
+                                            }
+                                            else
+                                            {
+                                                <details>
+                                                    <summary>اتصال حساب</summary>
+
+                                                    <form asp-action="LinkAccount" method="post"
+                                                          class="mt-2" data-prevent-double-submit>
+                                                        <input type="hidden" name="projectId"
+                                                               value="@Model.ProjectId" />
+                                                        <input type="hidden" name="membershipId"
+                                                               value="@member.Id" />
+
+                                                        <div class="d-flex flex-wrap gap-2">
+                                                            <input type="email" name="email"
+                                                                   maxlength="256" dir="ltr"
+                                                                   placeholder="name@example.com"
+                                                                   aria-label="ایمیل حساب عضو"
+                                                                   class="form-control form-control-sm"
+                                                                   required />
+
+                                                            <button type="submit"
+                                                                    class="btn btn-sm btn-outline-primary">
+                                                                ثبت اتصال
+                                                            </button>
+                                                        </div>
+                                                    </form>
+                                                </details>
+                                            }
+                                        </td>
+
+                                        <td>
+                                            <form asp-action="Remove" method="post"
+                                                  data-confirm="این عضو از پروژه حذف شود؟"
                                                   data-prevent-double-submit>
-
-                                                <input type="hidden"
-                                                       name="projectId"
+                                                <input type="hidden" name="projectId"
                                                        value="@Model.ProjectId" />
-
-                                                <input type="hidden"
-                                                       name="membershipId"
+                                                <input type="hidden" name="membershipId"
                                                        value="@member.Id" />
 
                                                 <button type="submit"
@@ -162,8 +178,8 @@
                                                     حذف از پروژه
                                                 </button>
                                             </form>
-                                        </div>
-                                    </td>
+                                        </td>
+                                    }
                                 </tr>
                             }
                         </tbody>
@@ -172,10 +188,12 @@
             }
         </section>
 
-        <p class="form-text mt-3">
-            پیش از حذف عضوی که مسئول تسک است، مسئول تمام تسک‌های او را
-            به عضو دیگری تغییر دهید.
-        </p>
+        @if (Model.CanManageMembers)
+        {
+            <p class="form-text mt-3">
+                پیش از حذف عضوی که مسئول تسک است، تسک‌های او را به عضو دیگری واگذار کنید.
+            </p>
+        }
     </div>
 </div>
 

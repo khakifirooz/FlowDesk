@@ -5,4 +5,5 @@ public class ProjectMemberListItemDto
     public int Id { get; set; }
     public int TeamMemberId { get; set; }
     public string FullName { get; set; } = string.Empty;
+    public bool HasLinkedAccount { get; set; }
 }

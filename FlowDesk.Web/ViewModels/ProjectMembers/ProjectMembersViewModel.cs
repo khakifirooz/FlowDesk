@@ -17,6 +17,10 @@ public class ProjectMembersViewModel
 
     [BindNever]
     [ValidateNever]
+    public bool CanManageMembers { get; set; }
+
+    [BindNever]
+    [ValidateNever]
     public string ProjectName { get; set; } = string.Empty;
 
     [BindNever]
