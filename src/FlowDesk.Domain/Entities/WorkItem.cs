@@ -46,6 +46,19 @@ public class WorkItem : BaseEntity
         RequireActive();
         if (Status != WorkItemStatus.InProgress)
             throw new InvalidOperationException("فقط تسک در حال انجام را می‌توانید تکمیل کنید.");
+        MarkDone(now);
+    }
+
+    public void ConfirmCompletion(DateTimeOffset now)
+    {
+        RequireActive();
+        if (Status is not (WorkItemStatus.ToDo or WorkItemStatus.InProgress))
+            throw new InvalidOperationException("فقط تسک باز را می‌توانید تکمیل کنید.");
+        MarkDone(now);
+    }
+
+    private void MarkDone(DateTimeOffset now)
+    {
         Status = WorkItemStatus.Done;
         CompletedAtUtc = now;
         Touch();

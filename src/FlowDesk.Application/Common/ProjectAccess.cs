@@ -20,6 +20,19 @@ public sealed class ProjectScope
     public bool CanChangeStatus(WorkItem item) => CanManage(item.ProjectId) ||
         (item.AssignedProjectMemberId is int id && OwnMembershipIds.Contains(id));
 
+    public void RequireStatusChange(WorkItem item)
+    {
+        RequireView(item.ProjectId);
+        if (!CanChangeStatus(item))
+            throw new UnauthorizedAccessException("فقط مسئول تسک یا مدیر همین پروژه می‌تواند وضعیت آن را تغییر دهد.");
+    }
+
+    public void RequireTeamDirectory()
+    {
+        if (ManagedProjectIds.Count == 0)
+            throw new UnauthorizedAccessException("فهرست افراد فقط برای مدیران پروژه در دسترس است.");
+    }
+
     public void RequireView(int projectId)
     {
         if (!VisibleProjectIds.Contains(projectId))
@@ -45,6 +58,25 @@ public sealed class ProjectAccess
         _projects = projects;
         _memberships = memberships;
         _currentUser = currentUser;
+    }
+
+    public async Task RequireTeamMemberSelectionAsync(ProjectScope scope, int teamMemberId)
+    {
+        scope.RequireTeamDirectory();
+        var links = await _memberships.FindAsync(x => x.TeamMemberId == teamMemberId);
+        if (links.Count > 0 && !links.Any(x => scope.CanManage(x.ProjectId)))
+            throw new UnauthorizedAccessException("این فرد در فهرست اعضای قابل انتخاب برای پروژه‌های شما نیست.");
+    }
+
+    public async Task RequireTeamMemberEditAsync(ProjectScope scope, int teamMemberId)
+    {
+        scope.RequireTeamDirectory();
+        var managedProjectIds = scope.ManagedProjectIds;
+        if (await _memberships.CountAsync(x =>
+            x.TeamMemberId == teamMemberId && !managedProjectIds.Contains(x.ProjectId)) > 0)
+        {
+            throw new UnauthorizedAccessException("این فرد در پروژه‌ای دیگر عضویت دارد و نام او از اینجا قابل تغییر نیست.");
+        }
     }
 
     private Task<ProjectScope>? _viewScope;

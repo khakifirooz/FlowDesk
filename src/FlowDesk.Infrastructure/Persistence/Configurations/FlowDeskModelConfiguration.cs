@@ -25,7 +25,7 @@ internal static class FlowDeskModelConfiguration
         var activity = modelBuilder.Entity<WorkItemActivity>();
         activity.Property(x => x.ActorUserId).HasMaxLength(450).IsRequired();
         activity.Property(x => x.AuthorName).HasMaxLength(200);
-        activity.Property(x => x.Message).HasMaxLength(1000);
+        activity.Property(x => x.Message).HasMaxLength(WorkItemActivity.MessageMaxLength);
         activity.HasIndex(x => new { x.WorkItemId, x.Id });
         activity.HasOne(x => x.WorkItem).WithMany().HasForeignKey(x => x.WorkItemId)
             .OnDelete(DeleteBehavior.Restrict);

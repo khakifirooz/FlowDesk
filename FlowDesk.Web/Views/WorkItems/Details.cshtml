@@ -6,6 +6,8 @@
 @{
     var item = Model.Details.Item;
     bool archived = item.ArchivedAtUtc.HasValue;
+    var completion = Model.Details.LatestCompletion;
+    bool canSubmit = item.CanChangeStatus && item.Status is WorkItemStatus.ToDo or WorkItemStatus.InProgress;
     bool overdue = !archived && item.Status != WorkItemStatus.Done && item.DueDate < Model.Today;
     string? currentDetails = Url.Action("Details", new { id = item.Id, returnUrl = Model.BackUrl });
     ViewData["Title"] = item.Title;
@@ -57,14 +59,14 @@
     <h2>شرح تسک</h2>
     <p class="text-break" style="white-space: pre-wrap;">@(item.Description ?? "هنوز شرحی برای این تسک نوشته نشده است.")</p>
     <div class="d-flex flex-wrap gap-2">
-        @if (item.CanChangeStatus)
+        @if (item.CanChangeStatus && item.Status is WorkItemStatus.ToDo or WorkItemStatus.Done)
         {
             var next = WorkItemLabels.NextStatus(item.Status);
             <form asp-action="ChangeStatus" method="post" data-prevent-double-submit>
                 <input type="hidden" name="id" value="@item.Id" />
                 <input type="hidden" name="targetStatus" value="@next.Target" />
                 <input type="hidden" name="returnUrl" value="@currentDetails" />
-                <button class="btn btn-primary" type="submit">@next.Text تسک</button>
+                <button class="btn btn-outline-secondary" type="submit">@next.Text تسک</button>
             </form>
         }
         @if (item.CanManage)
@@ -84,15 +86,56 @@
         }
     </div>
 </section>
-<section class="panel panel-pad">
-    <h2>گفت‌وگو و تاریخچه</h2>
+@if (canSubmit)
+{
+    <section class="panel panel-pad mb-4" aria-labelledby="completion-title">
+        <h2 id="completion-title">تحویل کار</h2>
+        <form asp-action="CompleteTask" method="post" data-prevent-double-submit>
+            <input type="hidden" name="id" value="@item.Id" />
+            <input type="hidden" name="returnUrl" value="@Model.BackUrl" />
+            <label for="completion-note" class="form-label">گزارش انجام کار (اختیاری)</label>
+            <textarea id="completion-note" name="completionNote" rows="3" class="form-control"
+                      maxlength="@WorkItemActivity.MessageMaxLength" aria-describedby="completion-help"
+                      placeholder="مثلاً چه چیزی تحویل دادی و چه موردی هنوز نیاز به پیگیری دارد؟"></textarea>
+            <div class="form-text" id="completion-help">این گزارش همراه با وضعیت انجام‌شده برای اعضای همین پروژه نمایش داده می‌شود.</div>
+            <button type="submit" class="btn btn-primary mt-3">کار انجام شد</button>
+        </form>
+    </section>
+}
+else if (item.Status == WorkItemStatus.Done)
+{
+    <section class="panel panel-pad mb-4" id="completion-summary" aria-labelledby="completion-title">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+            <h2 id="completion-title" class="mb-0">گزارش انجام کار</h2>
+            <span class="status status-done">انجام‌شده</span>
+        </div>
+        @if (completion?.AuthorName is not null || item.CompletedAtUtc.HasValue)
+        {
+            <div class="d-flex flex-wrap gap-2 text-muted small mb-2">
+                @if (completion?.AuthorName is string author)
+                {
+                    <span>ثبت‌کننده: <bdi>@author</bdi></span>
+                }
+                @if (item.CompletedAtUtc is DateTimeOffset completedAt)
+                {
+                    <time dir="ltr" datetime="@completedAt.ToString("O")">@TehranDateTime(completedAt)</time>
+                }
+            </div>
+        }
+        <p class="text-break mb-0" style="white-space: pre-wrap;">@(completion?.Message ?? "گزارش متنی ثبت نشده است.")</p>
+    </section>
+}
+<section class="panel panel-pad" aria-labelledby="discussion-title">
+    <h2 id="discussion-title">گفت‌وگو و تاریخچه</h2>
     @if (!archived)
     {
         <form asp-action="AddComment" method="post" class="mb-4" data-prevent-double-submit>
             <input type="hidden" name="id" value="@item.Id" />
             <input type="hidden" name="returnUrl" value="@Model.BackUrl" />
             <label for="comment" class="form-label">نظر شما</label>
-            <textarea id="comment" name="comment" rows="3" class="form-control" maxlength="1000" required></textarea>
+            <textarea id="comment" name="comment" rows="3" class="form-control"
+                      maxlength="@WorkItemActivity.MessageMaxLength" aria-describedby="comment-help" required></textarea>
+            <div class="form-text" id="comment-help">نظر با نام حساب شما در همین پروژه ثبت می‌شود.</div>
             <button type="submit" class="btn btn-primary mt-2">ثبت نظر</button>
         </form>
     }
@@ -115,11 +158,18 @@
                 WorkItemActivityKind.Reopened => "تسک بازگشایی شد",
                 WorkItemActivityKind.Archived => "تسک بایگانی شد",
                 WorkItemActivityKind.Restored => "تسک به فهرست فعال برگشت",
-                _ => entry.AuthorName ?? "نظر"
+                WorkItemActivityKind.Comment => "دیدگاه",
+                _ => "فعالیت تسک"
             };
             <li class="border-top py-3">
                 <div class="d-flex flex-wrap justify-content-between gap-2">
-                    <strong class="text-break">@label</strong>
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        <strong class="text-break">@label</strong>
+                        @if (entry.AuthorName is string activityAuthor)
+                        {
+                            <span class="text-muted small"><bdi>@activityAuthor</bdi></span>
+                        }
+                    </div>
                     <time class="text-muted small" dir="ltr" datetime="@entry.OccurredAtUtc.ToString("O")">@TehranDateTime(entry.OccurredAtUtc)</time>
                 </div>
                 @if (entry.Message is not null)

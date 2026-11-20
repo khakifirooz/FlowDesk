@@ -167,18 +167,52 @@ public class WorkItemsController : Controller
     }
 
     [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> ChangeStatus(int id, WorkItemStatus targetStatus, string? returnUrl)
+    public async Task<IActionResult> ChangeStatus([FromForm] int id, [FromForm] WorkItemStatus? targetStatus,
+        [FromForm] string? returnUrl)
     {
-        if (!ModelState.IsValid || id <= 0 || !Enum.IsDefined(targetStatus)) return BadRequest();
+        if (!ModelState.IsValid || id <= 0 || targetStatus is not { } status || !Enum.IsDefined(status))
+            return BadRequest();
         try
         {
-            await _items.ChangeStatusAsync(id, targetStatus);
+            string? authorName = null;
+            if (status == WorkItemStatus.Done)
+            {
+                authorName = await GetAuthorNameAsync();
+                if (authorName is null) return Forbid();
+            }
+
+            await _items.ChangeStatusAsync(id, status, authorName);
             TempData["SuccessMessage"] = "وضعیت تسک تغییر کرد.";
         }
         catch (KeyNotFoundException) { return NotFound(); }
         catch (InvalidOperationException ex) { TempData["ErrorMessage"] = ex.Message; }
         return SafeReturnUrl(returnUrl) is string destination
             ? LocalRedirect(destination) : RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> CompleteTask([FromForm] int id, [FromForm] string? completionNote,
+        [FromForm] string? returnUrl, [FromForm] bool returnToList)
+    {
+        if (!ModelState.IsValid || id <= 0) return BadRequest();
+        var authorName = await GetAuthorNameAsync();
+        if (authorName is null) return Forbid();
+
+        try
+        {
+            bool completed = await _items.CompleteAsync(id, completionNote, authorName);
+            TempData["SuccessMessage"] = completed ? "تکمیل تسک ثبت شد." : "این تسک قبلاً تکمیل شده است.";
+        }
+        catch (KeyNotFoundException) { return NotFound(); }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
+        {
+            TempData["ErrorMessage"] = ex.Message;
+        }
+
+        var destination = SafeReturnUrl(returnUrl);
+        return returnToList && destination is not null
+            ? LocalRedirect(destination)
+            : RedirectToAction(nameof(Details), new { id, returnUrl = destination });
     }
 
     [HttpGet]
@@ -258,12 +292,11 @@ public class WorkItemsController : Controller
     public async Task<IActionResult> AddComment([FromForm] int id, [FromForm] string? comment, [FromForm] string? returnUrl)
     {
         if (!ModelState.IsValid || id <= 0) return BadRequest();
-        var account = await _accounts.GetUserAsync(User);
-        if (account is null) return Forbid();
+        var authorName = await GetAuthorNameAsync();
+        if (authorName is null) return Forbid();
         try
         {
-            await _items.AddCommentAsync(id, comment,
-                string.IsNullOrWhiteSpace(account.FullName) ? "عضو پروژه" : account.FullName);
+            await _items.AddCommentAsync(id, comment, authorName);
             TempData["SuccessMessage"] = "نظر ثبت شد.";
         }
         catch (KeyNotFoundException) { return NotFound(); }
@@ -286,6 +319,13 @@ public class WorkItemsController : Controller
         catch (KeyNotFoundException) { return NotFound(); }
         catch (InvalidOperationException ex) { TempData["ErrorMessage"] = ex.Message; }
         return RedirectToAction(nameof(Details), new { id, returnUrl = SafeReturnUrl(returnUrl) });
+    }
+
+    private async Task<string?> GetAuthorNameAsync()
+    {
+        var account = await _accounts.GetUserAsync(User);
+        if (account is null) return null;
+        return string.IsNullOrWhiteSpace(account.FullName) ? "عضو پروژه" : account.FullName;
     }
 
     private string? SafeReturnUrl(string? value) =>

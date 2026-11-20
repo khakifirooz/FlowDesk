@@ -83,27 +83,36 @@
 
                             <td>
                                 <div class="row-actions">
-                                    <a asp-action="Edit"
-                                       asp-route-id="@member.Id"
-                                       class="btn btn-sm btn-outline-secondary">
-                                        ویرایش نام
-                                    </a>
+                                    @if (member.CanEdit)
+                                    {
+                                        <a asp-action="Edit"
+                                           asp-route-id="@member.Id"
+                                           class="btn btn-sm btn-outline-secondary">
+                                            ویرایش نام
+                                        </a>
+                                    }
+                                    @if (member.CanDelete)
+                                    {
+                                        <form asp-controller="TeamMembers"
+                                              asp-action="Delete"
+                                              method="post"
+                                              data-confirm="آیا این فرد از سامانه حذف شود؟"
+                                              data-prevent-double-submit>
 
-                                    <form asp-controller="TeamMembers"
-                                          asp-action="Delete"
-                                          method="post"
-                                          data-confirm="آیا این فرد از سامانه حذف شود؟"
-                                          data-prevent-double-submit>
+                                            <input type="hidden"
+                                                   name="id"
+                                                   value="@member.Id" />
 
-                                        <input type="hidden"
-                                               name="id"
-                                               value="@member.Id" />
-
-                                        <button type="submit"
-                                                class="btn btn-sm btn-outline-danger">
-                                            حذف فرد
-                                        </button>
-                                    </form>
+                                            <button type="submit"
+                                                    class="btn btn-sm btn-outline-danger">
+                                                حذف فرد
+                                            </button>
+                                        </form>
+                                    }
+                                    @if (!member.CanEdit && !member.CanDelete)
+                                    {
+                                        <span class="text-muted small">عضو مشترک · فقط نمایش</span>
+                                    }
                                 </div>
                             </td>
                         </tr>

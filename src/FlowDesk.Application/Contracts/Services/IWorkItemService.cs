@@ -26,9 +26,9 @@ public interface IWorkItemService
 
     Task AddCommentAsync(int id, string? text, string authorName);
 
-    Task ChangeStatusAsync(
-        int id,
-        WorkItemStatus targetStatus);
+    Task ChangeStatusAsync(int id, WorkItemStatus targetStatus, string? authorName = null);
+
+    Task<bool> CompleteAsync(int id, string? note, string authorName);
 
     Task ChangeAssigneeAsync(
         int id,

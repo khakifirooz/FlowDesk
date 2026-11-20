@@ -76,7 +76,9 @@ public class ProjectMemberService : IProjectMemberService
         int projectId,
         int teamMemberId)
     {
-        (await _access.GetScopeAsync()).RequireManager(projectId);
+        var scope = await _access.GetScopeAsync();
+        scope.RequireManager(projectId);
+        await _access.RequireTeamMemberSelectionAsync(scope, teamMemberId);
         bool projectExists =
             await _projectRepository.ExistsAsync(projectId);
 

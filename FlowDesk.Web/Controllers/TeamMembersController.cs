@@ -27,7 +27,9 @@ public class TeamMembersController : Controller
             .Select(member => new TeamMemberListItemViewModel
             {
                 Id = member.Id,
-                FullName = member.FullName
+                FullName = member.FullName,
+                CanEdit = member.CanEdit,
+                CanDelete = member.CanDelete
             })
             .ToList();
 
@@ -39,8 +41,10 @@ public class TeamMembersController : Controller
     {
         if (!ModelState.IsValid || projectId is <= 0)
             return BadRequest();
+        var scope = await _projectAccess.GetScopeAsync();
+        scope.RequireTeamDirectory();
         if (projectId is int id)
-            (await _projectAccess.GetScopeAsync()).RequireManager(id);
+            scope.RequireManager(id);
 
         return View(new CreateTeamMemberViewModel { ProjectId = projectId });
     }
@@ -50,8 +54,10 @@ public class TeamMembersController : Controller
     public async Task<IActionResult> Create(
         CreateTeamMemberViewModel model)
     {
+        var scope = await _projectAccess.GetScopeAsync();
+        scope.RequireTeamDirectory();
         if (model.ProjectId is int requestedProject)
-            (await _projectAccess.GetScopeAsync()).RequireManager(requestedProject);
+            scope.RequireManager(requestedProject);
 
         if (!ModelState.IsValid)
         {

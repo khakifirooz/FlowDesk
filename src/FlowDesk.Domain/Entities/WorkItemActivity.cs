@@ -9,10 +9,12 @@ public enum WorkItemActivityKind
 
 public sealed class WorkItemActivity : BaseEntity
 {
+    public const int MessageMaxLength = 1000;
+
     private WorkItemActivity() { }
 
     public WorkItemActivity(WorkItem workItem, WorkItemActivityKind kind,
-        string actorUserId, DateTimeOffset occurredAtUtc, string? comment = null, string? authorName = null)
+        string actorUserId, DateTimeOffset occurredAtUtc, string? message = null, string? authorName = null)
     {
         WorkItem = workItem;
         Kind = kind;
@@ -20,11 +22,20 @@ public sealed class WorkItemActivity : BaseEntity
         OccurredAtUtc = occurredAtUtc;
         if (kind == WorkItemActivityKind.Comment)
         {
-            var body = comment?.Trim();
-            if (string.IsNullOrWhiteSpace(body) || body.Length > 1000)
-                throw new ArgumentException("متن نظر باید بین ۱ تا ۱۰۰۰ کاراکتر باشد.", nameof(comment));
+            var body = message?.Trim();
+            if (string.IsNullOrWhiteSpace(body) || body.Length > MessageMaxLength)
+                throw new ArgumentException("متن نظر باید بین ۱ تا ۱۰۰۰ کاراکتر باشد.", nameof(message));
             Message = body;
             AuthorName = TextRules.RequiredName(authorName, nameof(authorName), "نام فرستنده");
+        }
+        else if (kind == WorkItemActivityKind.Completed)
+        {
+            var body = message?.Trim();
+            if (body?.Length > MessageMaxLength)
+                throw new ArgumentException("گزارش انجام کار حداکثر ۱۰۰۰ کاراکتر است.", nameof(message));
+            Message = string.IsNullOrEmpty(body) ? null : body;
+            if (Message is not null || authorName is not null)
+                AuthorName = TextRules.RequiredName(authorName, nameof(authorName), "نام فرستنده");
         }
     }
 

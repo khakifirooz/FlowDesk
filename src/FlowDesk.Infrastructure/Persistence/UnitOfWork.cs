@@ -1,4 +1,5 @@
 ﻿using FlowDesk.Application.Contracts.Persistence;
+using FlowDesk.Domain.Entities;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,6 +12,16 @@ public class UnitOfWork : IUnitOfWork
     public UnitOfWork(FlowDeskDbContext context)
     {
         _context = context;
+    }
+
+    public void VerifyMembershipOnSave(ProjectMember membership)
+    {
+        var entry = _context.Entry(membership);
+        if (entry.State != EntityState.Unchanged || string.IsNullOrEmpty(membership.AccountUserId))
+            throw new InvalidOperationException("عضویت فعال قابل بررسی نیست.");
+
+        // Include the current account concurrency token in this unit of work.
+        entry.Property(x => x.AccountUserId).IsModified = true;
     }
 
     public async Task<int> SaveChangesAsync()
