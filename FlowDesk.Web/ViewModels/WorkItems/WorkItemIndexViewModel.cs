@@ -13,7 +13,7 @@ public class WorkItemIndexViewModel : IValidatableObject
     public bool Archived { get; set; }
     public bool ManagedOnly { get; set; }
 
-    [EnumDataType(typeof(WorkItemFocus), ErrorMessage = "فیلتر اقدام معتبر نیست.")]
+    [EnumDataType(typeof(WorkItemFocus), ErrorMessage = "فیلتر پیگیری معتبر نیست.")]
     public WorkItemFocus? Focus { get; set; }
 
     [BindNever]
@@ -80,7 +80,7 @@ public class WorkItemIndexViewModel : IValidatableObject
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
         if (Archived && Focus.HasValue)
-            yield return new ValidationResult("فیلتر اقدام فقط در تسک‌های خارج از بایگانی کاربرد دارد.", [nameof(Focus)]);
+            yield return new ValidationResult("فیلتر پیگیری فقط در تسک‌های خارج از بایگانی کاربرد دارد.", [nameof(Focus)]);
     }
 
     public Dictionary<string, string> FilterRoute()

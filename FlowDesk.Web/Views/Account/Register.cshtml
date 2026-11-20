@@ -4,92 +4,93 @@
     ViewData["Title"] = "ساخت حساب";
 }
 
-<div class="auth-shell">
-    <div class="auth-panel">
-        <div class="page-head">
-            <div>
-                <span class="eyebrow">شروع همکاری</span>
-                <h1>ساخت حساب کاربری</h1>
-                <p>برای ورود به FlowDesk اطلاعات خود را وارد کنید.</p>
+@section Styles {
+    <link rel="stylesheet" href="~/css/account.css" asp-append-version="true" />
+}
+
+<div class="auth-shell auth-shell-split">
+    <section class="auth-panel panel panel-pad auth-form-panel" aria-labelledby="account-form-title">
+        <header class="account-form-head">
+            <h1 id="account-form-title">ساخت حساب کاربری</h1>
+            <p>حساب بسازید تا پروژهٔ خود را شروع کنید یا دعوت تیم را بپذیرید.</p>
+        </header>
+
+        <form asp-controller="Account"
+              asp-action="Register"
+              method="post"
+              data-prevent-double-submit>
+
+            <input asp-for="ReturnUrl" type="hidden" />
+
+            <div asp-validation-summary="ModelOnly"
+                 class="text-danger mb-3"></div>
+
+            <div class="mb-3">
+                <label asp-for="FullName" class="form-label"></label>
+                <input asp-for="FullName"
+                       class="form-control"
+                       autocomplete="name"
+                       maxlength="200" />
+                <span asp-validation-for="FullName"
+                      class="text-danger"></span>
             </div>
-        </div>
 
-        <section class="panel panel-pad auth-form-panel">
-            <form asp-controller="Account"
-                  asp-action="Register"
-                  method="post"
-                  data-prevent-double-submit>
+            <div class="mb-3">
+                <label asp-for="Email" class="form-label"></label>
+                <input asp-for="Email"
+                       type="email"
+                       class="form-control"
+                       autocomplete="username"
+                       dir="ltr"
+                       maxlength="256" />
+                <span asp-validation-for="Email"
+                      class="text-danger"></span>
+            </div>
 
-                <input asp-for="ReturnUrl" type="hidden" />
+            <div class="mb-3">
+                <label asp-for="Password" class="form-label"></label>
+                <input asp-for="Password"
+                       class="form-control"
+                       autocomplete="new-password"
+                       dir="ltr"
+                       maxlength="128"
+                       aria-describedby="password-help" />
+                <span asp-validation-for="Password"
+                      class="text-danger"></span>
 
-                <div asp-validation-summary="ModelOnly"
-                     class="text-danger mb-3"></div>
-
-                <div class="mb-3">
-                    <label asp-for="FullName" class="form-label"></label>
-                    <input asp-for="FullName"
-                           class="form-control"
-                           autocomplete="name"
-                           maxlength="200" />
-                    <span asp-validation-for="FullName"
-                          class="text-danger"></span>
+                <div id="password-help" class="form-text">
+                    حداقل ۱۰ کاراکتر؛ شامل حرف بزرگ و کوچک انگلیسی،
+                    عدد و یک علامت مانند ! یا @@.
                 </div>
+            </div>
 
-                <div class="mb-3">
-                    <label asp-for="Email" class="form-label"></label>
-                    <input asp-for="Email"
-                           type="email"
-                           class="form-control"
-                           autocomplete="username"
-                           dir="ltr"
-                           maxlength="256" />
-                    <span asp-validation-for="Email"
-                          class="text-danger"></span>
-                </div>
+            <div class="mb-4">
+                <label asp-for="ConfirmPassword"
+                       class="form-label"></label>
+                <input asp-for="ConfirmPassword"
+                       class="form-control"
+                       autocomplete="new-password"
+                       dir="ltr"
+                       maxlength="128" />
+                <span asp-validation-for="ConfirmPassword"
+                      class="text-danger"></span>
+            </div>
 
-                <div class="mb-3">
-                    <label asp-for="Password" class="form-label"></label>
-                    <input asp-for="Password"
-                           class="form-control"
-                           autocomplete="new-password"
-                           dir="ltr"
-                           maxlength="128"
-                           aria-describedby="password-help" />
-                    <span asp-validation-for="Password"
-                          class="text-danger"></span>
+            <button type="submit" class="btn btn-primary w-100">
+                ساخت حساب و ورود
+            </button>
 
-                    <div id="password-help" class="form-text">
-                        حداقل ۱۰ کاراکتر؛ شامل حرف بزرگ و کوچک انگلیسی،
-                        عدد و یک علامت مانند ! یا @@.
-                    </div>
-                </div>
+            <p class="account-form-footer">
+                حساب دارید؟
+                <a asp-action="Login"
+                   asp-route-returnUrl="@Model.ReturnUrl">
+                    ورود به حساب
+                </a>
+            </p>
+        </form>
+    </section>
 
-                <div class="mb-4">
-                    <label asp-for="ConfirmPassword"
-                           class="form-label"></label>
-                    <input asp-for="ConfirmPassword"
-                           class="form-control"
-                           autocomplete="new-password"
-                           dir="ltr"
-                           maxlength="128" />
-                    <span asp-validation-for="ConfirmPassword"
-                          class="text-danger"></span>
-                </div>
-
-                <button type="submit" class="btn btn-primary w-100">
-                    ساخت حساب و ورود
-                </button>
-
-                <p class="text-center mt-4 mb-0">
-                    قبلاً حساب ساخته‌اید؟
-                    <a asp-action="Login"
-                       asp-route-returnUrl="@Model.ReturnUrl">
-                        وارد شوید
-                    </a>
-                </p>
-            </form>
-        </section>
-    </div>
+    <partial name="_AccountShowcase" />
 </div>
 
 @section Scripts

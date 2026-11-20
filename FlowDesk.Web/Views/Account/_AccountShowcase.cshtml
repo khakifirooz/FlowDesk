@@ -1,0 +1,38 @@
+<aside class="account-showcase" aria-labelledby="account-showcase-title">
+    <div class="account-showcase-copy">
+        <span class="account-kicker">مدیریت پروژه و کارهای تیمی</span>
+        <h2 id="account-showcase-title">از تقسیم کار تا <em>تحویل پروژه</em></h2>
+        <p>مسئول هر تسک را مشخص کنید، مهلت‌ها را دنبال کنید و گزارش تحویل را همان‌جا ببینید.</p>
+    </div>
+
+    <figure class="account-demo">
+        <figcaption class="account-demo-head">
+            <span class="account-demo-icon"><partial name="_FlowIcon" model='"projects"' /></span>
+            <div>
+                <span class="account-demo-caption">پروژهٔ نمونه</span>
+                <strong>آماده‌سازی فروشگاه</strong>
+            </div>
+            <span class="account-demo-count">۱ از ۲ تسک انجام شده</span>
+        </figcaption>
+        <ul class="account-demo-list">
+            <li>
+                <div>
+                    <strong>طراحی صفحهٔ محصولات</strong>
+                    <small>مریم · گزارش تحویل ثبت شد</small>
+                </div>
+                <span class="status status-done">انجام‌شده</span>
+            </li>
+            <li>
+                <div>
+                    <strong>آماده‌سازی سبد خرید</strong>
+                    <small>امیر · موعد امروز</small>
+                </div>
+                <span class="status status-progress">در حال انجام</span>
+            </li>
+        </ul>
+    </figure>
+
+    <a asp-controller="Home" asp-action="Index" asp-fragment="workspace-preview" class="account-example-link">
+        دیدن نمونهٔ محیط کار <partial name="_FlowIcon" model='"arrow"' />
+    </a>
+</aside>

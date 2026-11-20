@@ -4,71 +4,72 @@
     ViewData["Title"] = "ورود";
 }
 
-<div class="auth-shell">
-    <div class="auth-panel">
-        <div class="page-head">
-            <div>
-                <span class="eyebrow">خوش آمدید</span>
-                <h1>ورود به FlowDesk</h1>
-                <p>برای ادامهٔ مدیریت پروژه‌ها وارد حساب خود شوید.</p>
+@section Styles {
+    <link rel="stylesheet" href="~/css/account.css" asp-append-version="true" />
+}
+
+<div class="auth-shell auth-shell-split">
+    <section class="auth-panel panel panel-pad auth-form-panel" aria-labelledby="account-form-title">
+        <header class="account-form-head">
+            <h1 id="account-form-title">ورود</h1>
+            <p>برای دیدن پروژه‌ها و تسک‌های خود، با ایمیل و رمز عبور وارد شوید.</p>
+        </header>
+
+        <form asp-controller="Account"
+              asp-action="Login"
+              method="post"
+              data-prevent-double-submit>
+
+            <input asp-for="ReturnUrl" type="hidden" />
+
+            <div asp-validation-summary="ModelOnly"
+                 class="text-danger mb-3"></div>
+
+            <div class="mb-3">
+                <label asp-for="Email" class="form-label"></label>
+                <input asp-for="Email"
+                       type="email"
+                       class="form-control"
+                       autocomplete="username"
+                       dir="ltr"
+                       maxlength="256" />
+                <span asp-validation-for="Email"
+                      class="text-danger"></span>
             </div>
-        </div>
 
-        <section class="panel panel-pad auth-form-panel">
-            <form asp-controller="Account"
-                  asp-action="Login"
-                  method="post"
-                  data-prevent-double-submit>
+            <div class="mb-3">
+                <label asp-for="Password" class="form-label"></label>
+                <input asp-for="Password"
+                       class="form-control"
+                       autocomplete="current-password"
+                       dir="ltr"
+                       maxlength="128" />
+                <span asp-validation-for="Password"
+                      class="text-danger"></span>
+            </div>
 
-                <input asp-for="ReturnUrl" type="hidden" />
+            <div class="form-check mb-4">
+                <input asp-for="RememberMe"
+                       class="form-check-input" />
+                <label asp-for="RememberMe"
+                       class="form-check-label"></label>
+            </div>
 
-                <div asp-validation-summary="ModelOnly"
-                     class="text-danger mb-3"></div>
+            <button type="submit" class="btn btn-primary w-100">
+                ورود به حساب
+            </button>
 
-                <div class="mb-3">
-                    <label asp-for="Email" class="form-label"></label>
-                    <input asp-for="Email"
-                           type="email"
-                           class="form-control"
-                           autocomplete="username"
-                           dir="ltr"
-                           maxlength="256" />
-                    <span asp-validation-for="Email"
-                          class="text-danger"></span>
-                </div>
+            <p class="account-form-footer">
+                حساب ندارید؟
+                <a asp-action="Register"
+                   asp-route-returnUrl="@Model.ReturnUrl">
+                    ساخت حساب
+                </a>
+            </p>
+        </form>
+    </section>
 
-                <div class="mb-3">
-                    <label asp-for="Password" class="form-label"></label>
-                    <input asp-for="Password"
-                           class="form-control"
-                           autocomplete="current-password"
-                           dir="ltr"
-                           maxlength="128" />
-                    <span asp-validation-for="Password"
-                          class="text-danger"></span>
-                </div>
-
-                <div class="form-check mb-4">
-                    <input asp-for="RememberMe"
-                           class="form-check-input" />
-                    <label asp-for="RememberMe"
-                           class="form-check-label"></label>
-                </div>
-
-                <button type="submit" class="btn btn-primary w-100">
-                    ورود به حساب
-                </button>
-
-                <p class="text-center mt-4 mb-0">
-                    هنوز حساب ندارید؟
-                    <a asp-action="Register"
-                       asp-route-returnUrl="@Model.ReturnUrl">
-                        ثبت‌نام کنید
-                    </a>
-                </p>
-            </form>
-        </section>
-    </div>
+    <partial name="_AccountShowcase" />
 </div>
 
 @section Scripts

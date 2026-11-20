@@ -1,7 +1,7 @@
 @model FlowDesk.Web.ViewModels.Home.WorkspaceHomeViewModel
 
 @{
-    ViewData["Title"] = Model is null ? "خانه" : "فضای کار من";
+    ViewData["Title"] = "خانه";
 }
 
 @section Styles {
@@ -10,13 +10,12 @@
 
 @if (Model is { } workspace)
 {
-    <div class="page-head workspace-welcome">
+    <div class="page-head workspace-welcome workspace-welcome-brief">
         <div>
-            <span class="eyebrow">نمای شروع</span>
-            <h1>فضای کار من</h1>
-            <p>@(workspace.ManagesProjects ? "کارهای خودت و وضعیت پروژه‌هایی را که مدیریت می‌کنی از اینجا دنبال کن."
-                : workspace.BelongsToProject ? "کارهای واگذارشده و پروژه‌هایی را که در آن‌ها عضو هستی ببین."
-                : "برای شروع می‌توانی پروژهٔ خودت را بسازی یا از مدیر تیم دعوت‌نامه بگیری.")</p>
+            <h1>@(workspace.ManagesProjects || workspace.BelongsToProject ? "نمای کلی کارها" : "شروع کار با FlowDesk")</h1>
+            <p>@(workspace.ManagesProjects ? "پروژه‌های تحت مدیریت و کارهایی که نیاز به پیگیری دارند، در دسترس شماست."
+                : workspace.BelongsToProject ? "تسک‌های واگذارشده به شما و پروژه‌هایی که در آن‌ها عضو هستید، از اینجا در دسترس‌اند."
+                : "پروژهٔ اولتان را بسازید یا با دعوت‌نامه به یک پروژه بپیوندید.")</p>
         </div>
     </div>
 
@@ -27,10 +26,10 @@
                 <section class="panel panel-pad workspace-tile h-100">
                     <span class="tile-icon"><partial name="_FlowIcon" model='"personal"' /></span>
                     <h2>تسک‌های من</h2>
-                    <p>کارهایی که به حساب تو واگذار شده‌اند.</p>
+                    <p>تسک‌هایی که به شما واگذار شده‌اند.</p>
                     <div class="d-flex flex-wrap gap-2">
-                        <a asp-controller="WorkItems" asp-action="Index" asp-route-OnlyMine="true" class="btn btn-primary">دیدن تسک‌ها</a>
-                        <a asp-controller="WorkItems" asp-action="Index" asp-route-OnlyMine="true" asp-route-Focus="Overdue" class="btn btn-outline-secondary">عقب‌افتاده‌های من</a>
+                        <a asp-controller="WorkItems" asp-action="Index" asp-route-OnlyMine="true" class="btn btn-primary">مشاهدهٔ تسک‌های من</a>
+                        <a asp-controller="WorkItems" asp-action="Index" asp-route-OnlyMine="true" asp-route-Focus="Overdue" class="btn btn-outline-secondary">گذشته از موعد</a>
                     </div>
                 </section>
             </div>
@@ -41,7 +40,7 @@
                 <section class="panel panel-pad workspace-tile h-100">
                     <span class="tile-icon"><partial name="_FlowIcon" model='"dashboard"' /></span>
                     <h2>مدیریت پروژه‌ها</h2>
-                    <p>پیشرفت پروژه‌ها و موارد نیازمند پیگیری.</p>
+                    <p>پیشرفت پروژه‌ها، مهلت‌ها و کارهای نیازمند پیگیری را ببینید.</p>
                     <div class="d-flex flex-wrap gap-2">
                         <a asp-controller="Dashboard" asp-action="Index" class="btn btn-primary">داشبورد مدیریتی</a>
                         <a asp-controller="WorkItems" asp-action="Create" class="btn btn-outline-secondary">ایجاد تسک</a>
@@ -55,7 +54,7 @@
                 <section class="panel panel-pad workspace-tile h-100">
                     <span class="tile-icon"><partial name="_FlowIcon" model='"projects"' /></span>
                     <h2>پروژه‌های من</h2>
-                    <p>تسک‌ها و اعضای هر پروژه را یک‌جا پیدا کن.</p>
+                    <p>تسک‌ها و اعضای هر پروژه را یک‌جا ببینید.</p>
                     <a asp-controller="Projects" asp-action="Index" class="btn btn-outline-primary">دیدن پروژه‌ها</a>
                 </section>
             </div>
@@ -65,16 +64,16 @@
             <div class="col">
                 <section class="panel panel-pad workspace-tile h-100">
                     <span class="tile-icon"><partial name="_FlowIcon" model='"projects"' /></span>
-                    <h2>اولین پروژه‌ات را بساز</h2>
-                    <p>بعد از ساخت پروژه می‌توانی اعضا را اضافه کنی و تسک بدهی.</p>
+                    <h2>ایجاد اولین پروژه</h2>
+                    <p>پس از ساخت پروژه، اعضا را اضافه کنید و تسک‌ها را به آن‌ها بسپارید.</p>
                     <a asp-controller="Projects" asp-action="Create" class="btn btn-primary">ایجاد پروژه</a>
                 </section>
             </div>
             <div class="col">
                 <section class="panel panel-pad workspace-tile h-100">
                     <span class="tile-icon"><partial name="_FlowIcon" model='"team"' /></span>
-                    <h2>به تیمی دعوت شده‌ای؟</h2>
-                    <p class="mb-0">لینکی را که مدیر پروژه فرستاده باز کن و با همین حساب دعوت را بپذیر.</p>
+                    <h2>به پروژه‌ای دعوت شده‌اید؟</h2>
+                    <p class="mb-0">لینک مدیر پروژه را باز کنید و با همین حساب دعوت را بپذیرید.</p>
                 </section>
             </div>
         }
@@ -144,7 +143,7 @@
         <article>
             <span class="tile-icon tile-icon-warm"><partial name="_FlowIcon" model='"personal"' /></span>
             <h2>پیگیری تسک‌ها</h2>
-            <p>بدانید امروز چه موعدی دارید و کدام کار نیاز به پیگیری دارد.</p>
+            <p>مهلت امروز و تسک‌های گذشته از موعد را جداگانه ببینید.</p>
             <a asp-controller="WorkItems" asp-action="Index" asp-route-OnlyMine="true">تسک‌های من <partial name="_FlowIcon" model='"arrow"' /></a>
         </article>
     </section>

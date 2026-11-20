@@ -47,7 +47,7 @@ public class WorkItemsController : Controller
         {
             foreach (var (field, message) in new[]
             {
-                (nameof(model.Focus), "فیلتر اقدام برای این فهرست معتبر نیست."),
+                (nameof(model.Focus), "فیلتر پیگیری برای این فهرست معتبر نیست."),
                 (nameof(model.Status), "وضعیت انتخاب‌شده معتبر نیست."),
                 (nameof(model.Priority), "اولویت انتخاب‌شده معتبر نیست."),
                 (nameof(model.ProjectId), "شناسهٔ پروژه معتبر نیست."),

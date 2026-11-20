@@ -49,7 +49,7 @@
             @if (item.DueDate is DateOnly dueDate)
             {
                 <time dir="ltr" datetime="@IsoDate(dueDate)">@PersianDate(dueDate)</time>
-                @if (overdue) { <span class="status status-progress">عقب‌افتاده</span> }
+                @if (overdue) { <span class="status status-late">گذشته از موعد</span> }
                 else if (!archived && item.Status != WorkItemStatus.Done && dueDate == Model.Today)
                 { <span class="status status-progress">امروز</span> }
             }
@@ -96,7 +96,7 @@
             <label for="completion-note" class="form-label">گزارش انجام کار (اختیاری)</label>
             <textarea id="completion-note" name="completionNote" rows="3" class="form-control"
                       maxlength="@WorkItemActivity.MessageMaxLength" aria-describedby="completion-help"
-                      placeholder="مثلاً چه چیزی تحویل دادی و چه موردی هنوز نیاز به پیگیری دارد؟"></textarea>
+                      placeholder="مثلاً چه کاری تحویل داده شد و چه موردی هنوز به پیگیری نیاز دارد؟"></textarea>
             <div class="form-text" id="completion-help">این گزارش همراه با وضعیت انجام‌شده برای اعضای همین پروژه نمایش داده می‌شود.</div>
             <button type="submit" class="btn btn-primary mt-3">کار انجام شد</button>
         </form>

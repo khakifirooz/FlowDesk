@@ -25,9 +25,9 @@
     <div>
         <span class="eyebrow">کارهای تیم</span>
         <h1>@ViewData["Title"]</h1>
-        <p>@(Model.OnlyMine ? "کارهایی که مسئولیت آن‌ها به تو واگذار شده است."
-            : Model.ManagedOnly ? "کارهای پروژه‌هایی که مدیریت می‌کنی."
-            : "کارهای پروژه‌هایی که در آن‌ها مدیر یا عضو هستی.")</p>
+        <p>@(Model.OnlyMine ? "تسک‌هایی که به شما واگذار شده‌اند."
+            : Model.ManagedOnly ? "تسک‌های پروژه‌هایی که مدیریت می‌کنید."
+            : "تسک‌های پروژه‌هایی که در آن‌ها مدیر یا عضو هستید.")</p>
     </div>
     @if (Model.CanCreate && !Model.Archived)
     {
@@ -100,9 +100,9 @@
                 <label asp-for="Focus" class="form-label">پیگیری تسک‌های باز</label>
                 <select asp-for="Focus" class="form-select">
                     <option value="">همهٔ تسک‌ها</option>
-                    <option value="@WorkItemFocus.Overdue">عقب‌افتاده</option>
+                    <option value="@WorkItemFocus.Overdue">گذشته از موعد</option>
                     <option value="@WorkItemFocus.DueToday">مهلت امروز</option>
-                    <option value="@WorkItemFocus.NextSevenDays">مهلت تا هفت روز آینده (با امروز)</option>
+                    <option value="@WorkItemFocus.NextSevenDays">مهلت در ۷ روز پیش رو (از امروز)</option>
                     <option value="@WorkItemFocus.WithDeadline">مهلت‌دار</option>
                     <option value="@WorkItemFocus.Unassigned">بدون مسئول</option>
                 </select>
@@ -126,8 +126,8 @@
             }
             else if (Model.OnlyMine && !Model.HasLinkedMembership)
             {
-                <h2>هنوز حساب تو به عضویت پروژه وصل نیست</h2>
-                <p>لینک دعوت را از مدیر پروژه بگیر، یا از او بخواه حسابت را به عضویتت وصل کند.</p>
+                <h2>حساب شما هنوز به هیچ پروژه‌ای متصل نیست</h2>
+                <p>از مدیر پروژه بخواهید لینک دعوت بفرستد یا حسابتان را به عضویت پروژه متصل کند.</p>
                 @if (Model.HasManagedProjects)
                 {
                     <a asp-controller="Projects" asp-action="Index">مدیریت اعضا از فهرست پروژه‌ها</a>
@@ -135,7 +135,7 @@
             }
             else if (Model.HasFilters)
             {
-                <h2>با این فیلترها تسکی پیدا نشد</h2>
+                <h2>تسکی مطابق این فیلترها پیدا نشد</h2>
                 @if (Model.PersonalCountWithoutFilters > 0)
                 {
                     <p>@Number(Model.PersonalCountWithoutFilters.Value) تسک من بدون این فیلترها وجود دارد.</p>
@@ -149,7 +149,7 @@
             }
             else if (Model.OnlyMine)
             {
-                <h2>هنوز تسکی به تو واگذار نشده است</h2>
+                <h2>هنوز تسکی به شما واگذار نشده است</h2>
                 <a asp-action="Index">دیدن تسک‌های پروژه‌ها</a>
             }
             else if (Model.CanCreate)
@@ -193,7 +193,7 @@
                                 <time dir="ltr" class="text-nowrap" datetime="@IsoDate(dueDate)">@PersianDate(dueDate)</time>
                                 @if (!Model.Archived && item.Status != WorkItemStatus.Done && dueDate <= Model.Today)
                                 {
-                                    <span class="status @(dueDate < Model.Today ? "status-late" : "status-progress")">@(dueDate < Model.Today ? "عقب‌افتاده" : "امروز")</span>
+                                    <span class="status @(dueDate < Model.Today ? "status-late" : "status-progress")">@(dueDate < Model.Today ? "گذشته از موعد" : "امروز")</span>
                                 }
                             }
                             else

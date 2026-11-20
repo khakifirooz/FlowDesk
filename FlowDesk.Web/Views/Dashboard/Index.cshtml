@@ -39,7 +39,7 @@
     {
         <section class="dash-panel dash-empty" aria-labelledby="dashboard-empty-title">
             <h2 id="dashboard-empty-title">هنوز مدیر هیچ پروژه‌ای نیستید</h2>
-            <p>گزارش‌های این صفحه فقط برای پروژه‌هایی است که مدیریت می‌کنید. کارهای واگذارشده به شما در «تسک‌های من» هستند.</p>
+            <p>گزارش‌های این صفحه فقط برای پروژه‌هایی است که مدیریت می‌کنید. تسک‌های واگذارشده به شما در «تسک‌های من» نمایش داده می‌شوند.</p>
             <div class="d-flex flex-wrap gap-2">
                 <a asp-controller="Projects" asp-action="Create" class="btn btn-primary">ایجاد پروژه</a>
                 <a asp-controller="WorkItems" asp-action="Index" asp-route-OnlyMine="true" class="btn btn-outline-secondary">تسک‌های من</a>
@@ -94,10 +94,10 @@
                     <div class="small mt-1"><a asp-controller="WorkItems" asp-action="Index" asp-route-ManagedOnly="true" asp-route-ProjectId="@Model.SelectedProjectId" asp-route-Status="@WorkItemStatus.InProgress" aria-label="دیدن تسک‌های در حال انجام">دیدن فهرست</a></div>
                 </div>
                 <div class="dash-card @(counts.Overdue > 0 ? "dash-card-warning" : null)">
-                    <dt>عقب‌افتاده</dt>
+                    <dt>تسک‌های گذشته از موعد</dt>
                     <dd>@Number(counts.Overdue)</dd>
-                    <small>تسک‌های باز با مهلت گذشته</small>
-                    <div class="small mt-1"><a asp-controller="WorkItems" asp-action="Index" asp-route-ManagedOnly="true" asp-route-ProjectId="@Model.SelectedProjectId" asp-route-Focus="@WorkItemFocus.Overdue" aria-label="دیدن تسک‌های عقب‌افتاده">دیدن فهرست</a></div>
+                    <small>فقط تسک‌های باز</small>
+                    <div class="small mt-1"><a asp-controller="WorkItems" asp-action="Index" asp-route-ManagedOnly="true" asp-route-ProjectId="@Model.SelectedProjectId" asp-route-Focus="@WorkItemFocus.Overdue" aria-label="مشاهدهٔ تسک‌های گذشته از موعد">دیدن فهرست</a></div>
                 </div>
                 <div class="dash-card">
                     <dt>بدون مسئول</dt>
@@ -165,7 +165,7 @@
         <section class="dash-panel" aria-labelledby="dashboard-deadlines">
             <div class="dash-section-heading">
                 <h2 id="dashboard-deadlines">مهلت‌های تسک‌ها</h2>
-                <p>تا ۸ تسک باز که مهلت دارند، به ترتیب زودترین موعد</p>
+                <p>حداکثر ۸ تسک باز، به‌ترتیب تاریخ مهلت</p>
                 @if (Model.Deadlines.Count > 0)
                 {
                     <a asp-controller="WorkItems" asp-action="Index" asp-route-ManagedOnly="true"
@@ -202,7 +202,7 @@
                                         <time class="dash-date" datetime="@IsoDate(row.DueDate)">@PersianDate(row.DueDate)</time>
                                         @if (row.DueDate < Model.Today)
                                         {
-                                            <span class="dash-badge danger">عقب‌افتاده</span>
+                                            <span class="dash-badge danger">گذشته از موعد</span>
                                         }
                                         else if (row.DueDate == Model.Today)
                                         {
@@ -237,7 +237,7 @@
                                     <th scope="col">عضو</th>
                                     <th scope="col">شروع‌نشده</th>
                                     <th scope="col">در حال انجام</th>
-                                    <th scope="col">عقب‌افتاده</th>
+                                    <th scope="col">گذشته از موعد</th>
                                 </tr>
                             </thead>
                             <tbody>

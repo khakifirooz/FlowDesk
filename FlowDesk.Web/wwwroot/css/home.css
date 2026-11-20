@@ -112,6 +112,10 @@
     border: 1px solid #3d4a60; border-radius: var(--radius);
     background: radial-gradient(ellipse at 9% 65%, #293349 0, transparent 65%), var(--surface);
 }
+.workspace-welcome-brief {
+    padding-block: clamp(.95rem, 2.1vw, 1.4rem);
+}
+
 .workspace-tile > .tile-icon { margin-block-end: .78rem; }
 .workspace-tile p { font-size: .92rem; }
 .workspace-tile:hover { border-color: #637089; }

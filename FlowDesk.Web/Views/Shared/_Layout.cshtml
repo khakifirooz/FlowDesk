@@ -8,7 +8,9 @@
     string? currentController =
         ViewContext.RouteData.Values["controller"]?.ToString();
 
-    bool homeActive = currentController == "Home" && (string?)ViewContext.RouteData.Values["action"] == "Index";
+    string? currentAction = ViewContext.RouteData.Values["action"]?.ToString();
+    bool homeActive = currentController == "Home" && currentAction == "Index";
+    bool isAccountForm = currentController == "Account" && currentAction is "Login" or "Register";
     bool dashboardActive = currentController == "Dashboard";
 
     bool projectsActive =
@@ -116,7 +118,14 @@
             <header class="app-header public-header">
                 <nav class="public-nav shell-width" aria-label="منوی اصلی">
                     <partial name="_FlowBrand" />
-                    <a class="btn btn-sm btn-outline-secondary ms-auto" asp-controller="Account" asp-action="Login">ورود</a>
+                    @if (isAccountForm)
+                    {
+                        <a class="btn btn-sm btn-outline-secondary ms-auto" asp-controller="Home" asp-action="Index">صفحهٔ اصلی</a>
+                    }
+                    else
+                    {
+                        <a class="btn btn-sm btn-outline-secondary ms-auto" asp-controller="Account" asp-action="Login">ورود</a>
+                    }
                 </nav>
             </header>
         }
