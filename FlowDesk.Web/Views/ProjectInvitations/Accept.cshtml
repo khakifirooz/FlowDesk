@@ -1,0 +1,29 @@
+@using FlowDesk.Application.Contracts.Services
+@model FlowDesk.Web.Controllers.AcceptInvitationModel
+@{
+    ViewData["Title"] = "دعوت به پروژه";
+}
+<div class="page-head"><h1>دعوت به پروژه</h1></div>
+<section class="panel panel-pad form-panel">
+    <div asp-validation-summary="All" class="text-danger" role="alert"></div>
+    @switch (Model.Outcome.State)
+    {
+        case InvitationState.Ready:
+            <p>برای پیوستن به پروژهٔ <strong>@Model.Outcome.ProjectName</strong>، دعوت را بپذیرید.</p>
+            <form asp-action="Accept" method="post" data-prevent-double-submit>
+                <input type="hidden" name="token" value="@Model.Token" />
+                <button type="submit" class="btn btn-primary">پذیرش دعوت</button>
+            </form>
+            break;
+        case InvitationState.WrongAccount:
+            <p>این دعوت برای ایمیل حساب دیگری است. از این حساب خارج شوید و لینک را با حساب دعوت‌شده باز کنید.</p>
+            break;
+        case InvitationState.AccountAlreadyInProject:
+            <p>این حساب از قبل به عضوی از پروژه متصل است. اگر این اتصال اشتباه است، با مدیر پروژه هماهنگ کنید.</p>
+            break;
+        default:
+            <p>این لینک دیگر قابل استفاده نیست. اگر هنوز به پروژه دسترسی ندارید، از مدیر لینک تازه بگیرید.</p>
+            break;
+    }
+    <a asp-controller="Projects" asp-action="Index" class="btn btn-outline-secondary mt-3">پروژه‌های من</a>
+</section>

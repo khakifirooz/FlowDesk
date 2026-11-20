@@ -1,5 +1,6 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
+using FlowDesk.Application.Common;
 using FlowDesk.Application.Contracts.Services;
 using FlowDesk.Application.DTOs.Projects;
 using FlowDesk.Infrastructure.Identity;
@@ -18,17 +19,20 @@ public class ProjectMembersController : Controller
     private readonly ITeamMemberService _teamMemberService;
     private readonly IProjectMemberService _projectMemberService;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly ProjectAccess _access;
 
     public ProjectMembersController(
         IProjectService projectService,
         ITeamMemberService teamMemberService,
         IProjectMemberService projectMemberService,
-        UserManager<ApplicationUser> userManager)
+        UserManager<ApplicationUser> userManager,
+        ProjectAccess access)
     {
         _projectService = projectService;
         _teamMemberService = teamMemberService;
         _projectMemberService = projectMemberService;
         _userManager = userManager;
+        _access = access;
     }
 
     [HttpGet]
@@ -132,6 +136,26 @@ public class ProjectMembersController : Controller
         return ChangeAccountAsync(projectId, membershipId, email: null, unlink: true);
     }
 
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> LinkMyAccount([FromForm] int projectId, [FromForm] int membershipId)
+    {
+        if (!ModelState.IsValid || projectId <= 0 || membershipId <= 0) return BadRequest();
+        var scope = await _access.GetScopeAsync();
+        scope.RequireManager(projectId);
+        var account = await _userManager.GetUserAsync(User);
+        if (account is null) return Forbid();
+
+        try
+        {
+            await _projectMemberService.SetAccountAsync(projectId, membershipId, account.Id);
+            TempData["SuccessMessage"] = "حساب شما به این ردیف عضویت متصل شد.";
+        }
+        catch (KeyNotFoundException) { return NotFound(); }
+        catch (InvalidOperationException ex) { TempData["ErrorMessage"] = ex.Message; }
+
+        return RedirectToAction(nameof(Index), new { projectId });
+    }
+
     private async Task<IActionResult> ChangeAccountAsync(
         int projectId,
         int membershipId,
@@ -223,6 +247,8 @@ public class ProjectMembersController : Controller
 
         if (canManage)
         {
+            var scope = await _access.GetScopeAsync();
+            model.OwnMembershipIds = scope.OwnMembershipIds.ToHashSet();
             var existingIds = memberships.Select(x => x.TeamMemberId).ToHashSet();
             var allMembers = await _teamMemberService.GetAllAsync();
 

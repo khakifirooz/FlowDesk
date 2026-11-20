@@ -15,24 +15,32 @@ public class WorkItemService : IWorkItemService
     private readonly IRepository<ProjectMember> _members;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ProjectAccess _access;
+    private readonly IRepository<WorkItemActivity> _activity;
+    private readonly TimeProvider _clock;
 
     public WorkItemService(IRepository<WorkItem> items,
-        IRepository<ProjectMember> members, IUnitOfWork unitOfWork, ProjectAccess access)
+        IRepository<ProjectMember> members, IUnitOfWork unitOfWork, ProjectAccess access,
+        IRepository<WorkItemActivity> activity, TimeProvider clock)
     {
         _items = items;
         _members = members;
         _unitOfWork = unitOfWork;
         _access = access;
+        _activity = activity;
+        _clock = clock;
     }
 
     public async Task<int> CreateAsync(CreateWorkItemDto input)
     {
-        (await _access.GetScopeAsync()).RequireManager(input.ProjectId);
+        var scope = await _access.GetScopeAsync();
+        scope.RequireManager(input.ProjectId);
         var item = new WorkItem(input.Title, input.ProjectId);
+        item.ChangeDetails(input.Title, input.Description, input.Priority, input.DueDate);
         await RequireUniqueTitleAsync(item.ProjectId, item.Title);
         item.AssignTo(await RequireMembershipAsync(input.ProjectId, input.AssignedProjectMemberId));
+        item.RecordCreation(_clock.GetUtcNow());
         await _items.AddAsync(item);
-        await _unitOfWork.SaveChangesAsync();
+        await SaveWithActivityAsync(item, scope, WorkItemActivityKind.Created);
         return item.Id;
     }
 
@@ -57,43 +65,70 @@ public class WorkItemService : IWorkItemService
     {
         var scope = await _access.GetScopeAsync();
         scope.RequireView(projectId);
-        var items = await _items.FindAsync(x => x.ProjectId == projectId);
+        var items = await _items.FindAsync(x => x.ProjectId == projectId && x.ArchivedAtUtc == null);
         return items.OrderByDescending(x => x.Id).Select(x => Map(x, scope)).ToList();
     }
 
-    public async Task<PagedResult<WorkItemListItemDto>> SearchAsync(WorkItemSearchDto input)
+    public async Task<WorkItemSearchResult> SearchAsync(WorkItemSearchDto input)
     {
         if (input.ProjectId is <= 0)
             throw new ArgumentException("شناسهٔ پروژه معتبر نیست.");
         if (input.Status.HasValue && !Enum.IsDefined(input.Status.Value))
             throw new ArgumentException("وضعیت معتبر نیست.");
 
+        if (input.Priority.HasValue && !Enum.IsDefined(input.Priority.Value))
+            throw new ArgumentException("اولویت معتبر نیست.");
         var scope = await _access.GetScopeAsync();
         if (input.ProjectId.HasValue) scope.RequireView(input.ProjectId.Value);
 
         var ids = scope.VisibleProjectIds;
         var ownIds = scope.OwnMembershipIds;
         string searchText = TextRules.Normalize(input.SearchText);
+        if (searchText.Length > TextRules.NameMaxLength)
+            throw new ArgumentException("متن جست‌وجو حداکثر ۲۰۰ کاراکتر است.", nameof(input.SearchText));
         int? projectId = input.ProjectId;
         var status = input.Status;
+        var priority = input.Priority;
+        bool archived = input.Archived;
         bool onlyMine = input.OnlyMine;
         const int pageSize = 10;
 
-        Expression<Func<WorkItem, bool>> predicate = item =>
+        Expression<Func<WorkItem, bool>> scopedTasks = item =>
             ids.Contains(item.ProjectId) &&
+            (archived ? item.ArchivedAtUtc != null : item.ArchivedAtUtc == null) &&
             (!onlyMine || (item.AssignedProjectMemberId.HasValue &&
-                ownIds.Contains(item.AssignedProjectMemberId.Value))) &&
-            (searchText == "" || item.Title.Contains(searchText)) &&
-            (!projectId.HasValue || item.ProjectId == projectId.Value) &&
-            (!status.HasValue || item.Status == status.Value);
+                ownIds.Contains(item.AssignedProjectMemberId.Value)));
+        Expression<Func<WorkItem, bool>> filters = item =>
+            (!projectId.HasValue || item.ProjectId == projectId) &&
+            (!status.HasValue || item.Status == status) &&
+            (!priority.HasValue || item.Priority == priority);
+        var predicate = And(scopedTasks, filters);
+
+        foreach (string term in searchText.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                     .Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            Expression<Func<WorkItem, bool>> containsTerm = item => item.Title.Contains(term);
+            predicate = And(predicate, containsTerm);
+        }
 
         int totalCount = await _items.CountAsync(predicate);
         int totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize));
         int pageNumber = Math.Clamp(input.PageNumber, 1, totalPages);
         var items = await _items.GetPageAsync(predicate, pageNumber, pageSize);
 
-        return new PagedResult<WorkItemListItemDto>
+        int? personalCount = null;
+        if (onlyMine && totalCount == 0)
         {
+            bool filtersApplied = projectId.HasValue || status.HasValue || priority.HasValue || searchText.Length > 0;
+            personalCount = filtersApplied && ownIds.Count > 0
+                ? await _items.CountAsync(scopedTasks)
+                : 0;
+        }
+
+        return new WorkItemSearchResult
+        {
+            HasLinkedMembership = ownIds.Count > 0,
+            PersonalCountWithoutFilters = personalCount,
             Items = items.Select(x => Map(x, scope)).ToList(),
             TotalCount = totalCount,
             PageNumber = pageNumber,
@@ -109,7 +144,7 @@ public class WorkItemService : IWorkItemService
         string cleanTitle = TextRules.RequiredName(title, nameof(title), "عنوان تسک");
         await RequireUniqueTitleAsync(item.ProjectId, cleanTitle, id);
         item.ChangeTitle(cleanTitle);
-        await _unitOfWork.SaveChangesAsync();
+        await SaveWithActivityAsync(item, scope, WorkItemActivityKind.Edited);
     }
 
     public async Task ChangeStatusAsync(int id, WorkItemStatus targetStatus)
@@ -119,14 +154,18 @@ public class WorkItemService : IWorkItemService
         scope.RequireView(item.ProjectId);
         if (!scope.CanChangeStatus(item)) throw new UnauthorizedAccessException();
 
+        WorkItemActivityKind kind;
         switch (targetStatus)
         {
-            case WorkItemStatus.InProgress: item.Start(); break;
-            case WorkItemStatus.Done: item.Complete(); break;
-            case WorkItemStatus.ToDo: item.Reopen(); break;
+            case WorkItemStatus.InProgress:
+                item.Start(); kind = WorkItemActivityKind.Started; break;
+            case WorkItemStatus.Done:
+                item.Complete(_clock.GetUtcNow()); kind = WorkItemActivityKind.Completed; break;
+            case WorkItemStatus.ToDo:
+                item.Reopen(); kind = WorkItemActivityKind.Reopened; break;
             default: throw new ArgumentException("وضعیت انتخاب‌شده معتبر نیست.");
         }
-        await _unitOfWork.SaveChangesAsync();
+        await SaveWithActivityAsync(item, scope, kind);
     }
 
     public async Task ChangeAssigneeAsync(int id, int projectId, int projectMemberId)
@@ -137,6 +176,60 @@ public class WorkItemService : IWorkItemService
         if (item.ProjectId != projectId)
             throw new InvalidOperationException("تسک متعلق به این پروژه نیست.");
         item.AssignTo(await RequireMembershipAsync(projectId, projectMemberId));
+        await SaveWithActivityAsync(item, scope, WorkItemActivityKind.Reassigned);
+    }
+
+    public async Task EditAsync(int id, EditWorkItemDto input)
+    {
+        var scope = await _access.GetScopeAsync();
+        var item = await RequireItemAsync(id);
+        scope.RequireManager(item.ProjectId);
+        var title = TextRules.RequiredName(input.Title, nameof(input.Title), "عنوان تسک");
+        await RequireUniqueTitleAsync(item.ProjectId, title, id);
+        item.ChangeDetails(title, input.Description, input.Priority, input.DueDate);
+        await SaveWithActivityAsync(item, scope, WorkItemActivityKind.Edited);
+    }
+
+    public async Task<WorkItemDetailsDto?> GetDetailsAsync(int id, int activityPage)
+    {
+        var scope = await _access.GetScopeAsync();
+        var item = await _items.GetByIdAsync(id);
+        if (item is null) return null;
+        scope.RequireView(item.ProjectId);
+        const int pageSize = 20;
+        Expression<Func<WorkItemActivity, bool>> filter = x => x.WorkItemId == item.Id;
+        int count = await _activity.CountAsync(filter);
+        int pages = Math.Max(1, (int)Math.Ceiling(count / (double)pageSize));
+        int page = Math.Clamp(activityPage, 1, pages);
+        var activity = await _activity.GetPageAsync(filter, page, pageSize);
+        return new WorkItemDetailsDto(Map(item, scope), activity.Select(x => new WorkItemActivityDto(
+            x.Kind, x.OccurredAtUtc, x.AuthorName, x.Message)).ToArray(), page, pages);
+    }
+
+    public async Task SetArchivedAsync(int id, bool archived)
+    {
+        var scope = await _access.GetScopeAsync();
+        var item = await RequireItemAsync(id);
+        scope.RequireManager(item.ProjectId);
+        if (archived) item.Archive(_clock.GetUtcNow());
+        else item.Restore();
+        await SaveWithActivityAsync(item, scope,
+            archived ? WorkItemActivityKind.Archived : WorkItemActivityKind.Restored);
+    }
+
+    public async Task AddCommentAsync(int id, string? text, string authorName)
+    {
+        var scope = await _access.GetScopeAsync();
+        var item = await RequireItemAsync(id);
+        scope.RequireView(item.ProjectId);
+        item.CommentAdded();
+        await SaveWithActivityAsync(item, scope, WorkItemActivityKind.Comment, text, authorName);
+    }
+
+    private async Task SaveWithActivityAsync(WorkItem item, ProjectScope scope, WorkItemActivityKind kind,
+        string? comment = null, string? authorName = null)
+    {
+        await _activity.AddAsync(new WorkItemActivity(item, kind, scope.UserId, _clock.GetUtcNow(), comment, authorName));
         await _unitOfWork.SaveChangesAsync();
     }
 
@@ -158,6 +251,14 @@ public class WorkItemService : IWorkItemService
             throw new InvalidOperationException("تسک دیگری با این عنوان در همین پروژه وجود دارد.");
     }
 
+    private static Expression<Func<WorkItem, bool>> And(
+        Expression<Func<WorkItem, bool>> first, Expression<Func<WorkItem, bool>> second)
+    {
+        var parameter = first.Parameters[0];
+        var body = Expression.AndAlso(first.Body, Expression.Invoke(second, parameter));
+        return Expression.Lambda<Func<WorkItem, bool>>(body, parameter);
+    }
+
     private static WorkItemListItemDto Map(WorkItem item, ProjectScope scope) => new()
     {
         Id = item.Id,
@@ -166,6 +267,12 @@ public class WorkItemService : IWorkItemService
         Status = item.Status,
         AssignedProjectMemberId = item.AssignedProjectMemberId,
         CanManage = scope.CanManage(item.ProjectId),
-        CanChangeStatus = scope.CanChangeStatus(item)
+        CanChangeStatus = item.ArchivedAtUtc is null && scope.CanChangeStatus(item),
+        Description = item.Description,
+        Priority = item.Priority,
+        DueDate = item.DueDate,
+        CreatedAtUtc = item.CreatedAtUtc,
+        CompletedAtUtc = item.CompletedAtUtc,
+        ArchivedAtUtc = item.ArchivedAtUtc
     };
 }

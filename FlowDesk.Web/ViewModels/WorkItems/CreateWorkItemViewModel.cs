@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+using FlowDesk.Domain.Enums;
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -13,6 +14,19 @@ public class CreateWorkItemViewModel
         ErrorMessage = "عنوان حداکثر ۲۰۰ کاراکتر است.")]
     [Display(Name = "عنوان تسک")]
     public string Title { get; set; } = string.Empty;
+
+    [StringLength(2000, ErrorMessage = "شرح تسک حداکثر ۲۰۰۰ کاراکتر است.")]
+    [Display(Name = "شرح تسک")]
+    public string? Description { get; set; }
+
+    [EnumDataType(typeof(WorkItemPriority), ErrorMessage = "اولویت معتبر نیست.")]
+    [Display(Name = "اولویت")]
+    public WorkItemPriority Priority { get; set; }
+
+    [Display(Name = "مهلت")]
+    [DataType(DataType.Date)]
+    public DateOnly? DueDate { get; set; }
+
 
     [Required(ErrorMessage = "یک پروژه انتخاب کنید.")]
     [Range(

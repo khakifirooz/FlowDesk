@@ -1,7 +1,12 @@
-﻿@model FlowDesk.Web.ViewModels.ProjectMembers.ProjectMembersViewModel
+@using Microsoft.AspNetCore.Mvc.Controllers
+@inject Microsoft.AspNetCore.Mvc.Infrastructure.IActionDescriptorCollectionProvider ActionDescriptors
+@model FlowDesk.Web.ViewModels.ProjectMembers.ProjectMembersViewModel
 
 @{
     ViewData["Title"] = "اعضای پروژه";
+    bool hasInvitations = ActionDescriptors.ActionDescriptors.Items
+        .OfType<ControllerActionDescriptor>()
+        .Any(action => action.ControllerName == "ProjectInvitations" && action.ActionName == "Create");
 }
 
 <div class="page-head">
@@ -12,9 +17,12 @@
     </div>
 
     <div class="d-flex flex-wrap gap-2">
-        <a asp-controller="WorkItems" asp-action="Assign"
-           asp-route-id="" asp-route-projectId="@Model.ProjectId"
-           class="btn btn-primary">واگذاری تسک</a>
+        @if (Model.CanManageMembers)
+        {
+            <a asp-controller="WorkItems" asp-action="Assign"
+               asp-route-id="" asp-route-projectId="@Model.ProjectId"
+               class="btn btn-primary">واگذاری تسک</a>
+        }
 
         <a asp-controller="Projects" asp-action="Index"
            class="btn btn-outline-secondary">بازگشت به پروژه‌ها</a>
@@ -118,7 +126,14 @@
                                         <td>
                                             @if (member.HasLinkedAccount)
                                             {
-                                                <span class="badge text-bg-success">متصل</span>
+                                                @if (Model.OwnMembershipIds.Contains(member.Id))
+                                                {
+                                                    <span class="badge text-bg-success">متصل به حساب شما</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge text-bg-secondary">متصل به حساب دیگری</span>
+                                                }
 
                                                 <form asp-action="UnlinkAccount" method="post" class="mt-2"
                                                       data-confirm="اتصال حساب این عضو از پروژه برداشته شود؟"
@@ -136,8 +151,21 @@
                                             }
                                             else
                                             {
+                                                <form asp-action="LinkMyAccount" method="post" class="mb-2"
+                                                      data-confirm="این ردیف عضو به حساب ورود فعلی شما متصل شود؟"
+                                                      data-prevent-double-submit>
+                                                    <input type="hidden" name="projectId" value="@Model.ProjectId" />
+                                                    <input type="hidden" name="membershipId" value="@member.Id" />
+                                                    <button type="submit" class="btn btn-sm btn-outline-primary">اتصال به حساب من</button>
+                                                </form>
+                                                @if (hasInvitations)
+                                                {
+                                                    <a asp-controller="ProjectInvitations" asp-action="Create"
+                                                       asp-route-projectId="@Model.ProjectId" asp-route-membershipId="@member.Id"
+                                                       class="btn btn-sm btn-outline-secondary mb-2">لینک دعوت</a>
+                                                }
                                                 <details>
-                                                    <summary>اتصال حساب</summary>
+                                                    <summary>اتصال دستی حساب</summary>
 
                                                     <form asp-action="LinkAccount" method="post"
                                                           class="mt-2" data-prevent-double-submit>

@@ -1,4 +1,6 @@
-﻿namespace FlowDesk.Application.DTOs.WorkItems;
+using FlowDesk.Domain.Enums;
+
+namespace FlowDesk.Application.DTOs.WorkItems;
 
 public class CreateWorkItemDto
 {
@@ -7,4 +9,7 @@ public class CreateWorkItemDto
     public int ProjectId { get; set; }
 
     public int AssignedProjectMemberId { get; set; }
+    public string? Description { get; set; }
+    public WorkItemPriority Priority { get; set; }
+    public DateOnly? DueDate { get; set; }
 }

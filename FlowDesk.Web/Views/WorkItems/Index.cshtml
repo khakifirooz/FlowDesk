@@ -1,7 +1,10 @@
 @using FlowDesk.Domain.Enums
+@using FlowDesk.Web.ViewModels.WorkItems
 @model FlowDesk.Web.ViewModels.WorkItems.WorkItemIndexViewModel
 @{
-    ViewData["Title"] = Model.OnlyMine ? "تسک‌های من" : "تسک‌های پروژه‌ها";
+    ViewData["Title"] = Model.Archived
+        ? (Model.OnlyMine ? "تسک‌های بایگانی‌شدهٔ من" : "بایگانی تسک‌ها")
+        : (Model.OnlyMine ? "تسک‌های من" : "تسک‌های پروژه‌ها");
     string returnUrl = $"{Context.Request.PathBase}{Context.Request.Path}{Context.Request.QueryString}";
 }
 <div class="page-head">
@@ -9,7 +12,7 @@
         <h1>@ViewData["Title"]</h1>
         <p>@(Model.OnlyMine ? "کارهایی که مسئولیت آن‌ها به حساب شما متصل است." : "کارهای پروژه‌هایی که در آن‌ها مدیر یا عضو هستید.")</p>
     </div>
-    @if (Model.CanCreate)
+    @if (Model.CanCreate && !Model.Archived)
     {
         <div class="d-flex flex-wrap gap-2">
             <a asp-action="Create" class="btn btn-primary">ایجاد تسک</a>
@@ -17,9 +20,17 @@
         </div>
     }
 </div>
-<div class="d-flex gap-2 mb-4">
-    <a asp-action="Index" asp-route-OnlyMine="false" class="btn @(Model.OnlyMine ? "btn-outline-secondary" : "btn-secondary")">تسک‌های پروژه‌ها</a>
-    <a asp-action="Index" asp-route-OnlyMine="true" class="btn @(Model.OnlyMine ? "btn-secondary" : "btn-outline-secondary")">تسک‌های من</a>
+<div class="d-flex flex-wrap gap-2 mb-4">
+    <a asp-action="Index" asp-route-OnlyMine="false" asp-route-Archived="@(Model.Archived ? "true" : null)" class="btn @(Model.OnlyMine ? "btn-outline-secondary" : "btn-secondary")">تسک‌های پروژه‌ها</a>
+    <a asp-action="Index" asp-route-OnlyMine="true" asp-route-Archived="@(Model.Archived ? "true" : null)" class="btn @(Model.OnlyMine ? "btn-secondary" : "btn-outline-secondary")">تسک‌های من</a>
+    @if (Model.Archived)
+    {
+        <a asp-action="Index" asp-route-OnlyMine="@Model.OnlyMine" class="btn btn-outline-secondary">تسک‌های فعال</a>
+    }
+    else
+    {
+        <a asp-action="Index" asp-route-OnlyMine="@Model.OnlyMine" asp-route-Archived="true" class="btn btn-outline-secondary">بایگانی</a>
+    }
 </div>
 @if (TempData["SuccessMessage"] is string success)
 {
@@ -29,57 +40,108 @@
 {
     <div class="alert alert-danger" role="alert">@error</div>
 }
-<form asp-action="Index" method="get" class="panel panel-pad mb-4">
+<form asp-action="Index" method="get" class="panel panel-pad mb-4" data-work-item-filters>
     <div asp-validation-summary="All" class="text-danger"></div>
     <input type="hidden" name="OnlyMine" value="@Model.OnlyMine.ToString().ToLowerInvariant()" />
     <input type="hidden" name="PageNumber" value="1" />
+    @if (Model.Archived)
+    {
+        <input type="hidden" name="Archived" value="true" />
+    }
     <div class="row g-3">
-        <div class="col-md-5">
-            <label asp-for="SearchText" class="form-label">عنوان تسک</label>
-            <input asp-for="SearchText" class="form-control" />
-        </div>
         <div class="col-md-4">
+            <label asp-for="SearchText" class="form-label">عنوان تسک</label>
+            <input asp-for="SearchText" class="form-control" maxlength="200"
+                   placeholder="مثلاً طراحی ورود" aria-describedby="task-title-help" />
+            <div id="task-title-help" class="form-text">واژه‌های عنوان لازم نیست کنار هم باشند.</div>
+        </div>
+        <div class="col-md-3">
             <label asp-for="ProjectId" class="form-label">پروژه</label>
-            <select asp-for="ProjectId" asp-items="Model.Projects" class="form-select"><option value="">همهٔ پروژه‌های من</option></select>
+            <select asp-for="ProjectId" asp-items="Model.Projects" class="form-select" data-apply-filter aria-describedby="task-filter-help"><option value="">همهٔ پروژه‌های من</option></select>
         </div>
         <div class="col-md-3">
             <label asp-for="Status" class="form-label">وضعیت</label>
-            <select asp-for="Status" class="form-select">
+            <select asp-for="Status" class="form-select" data-apply-filter aria-describedby="task-filter-help">
                 <option value="">همه</option>
                 <option value="@WorkItemStatus.ToDo">انجام‌نشده</option>
                 <option value="@WorkItemStatus.InProgress">در حال انجام</option>
                 <option value="@WorkItemStatus.Done">انجام‌شده</option>
             </select>
         </div>
+        <div class="col-md-2">
+            <label asp-for="Priority" class="form-label">اولویت</label>
+            <select asp-for="Priority" class="form-select" data-apply-filter aria-describedby="task-filter-help">
+                <option value="">همه</option>
+                @foreach (var priority in Enum.GetValues<WorkItemPriority>())
+                {
+                    <option value="@priority">@WorkItemLabels.Priority(priority)</option>
+                }
+            </select>
+        </div>
     </div>
-    <div class="d-flex gap-2 mt-3">
+    <p id="task-filter-help" class="form-text mt-2 mb-0">با انتخاب پروژه، وضعیت یا اولویت، فهرست به‌روز می‌شود.</p>
+    <div class="d-flex flex-wrap gap-2 mt-3">
         <button type="submit" class="btn btn-primary">جست‌وجو</button>
-        <a asp-action="Index" asp-route-OnlyMine="@Model.OnlyMine" class="btn btn-outline-secondary">پاک‌کردن فیلترها</a>
+        <a asp-action="Index" asp-route-OnlyMine="@Model.OnlyMine" asp-route-Archived="@(Model.Archived ? "true" : null)" class="btn btn-outline-secondary">پاک‌کردن فیلترها</a>
     </div>
 </form>
 <p class="text-muted">کل نتایج: @Model.TotalCount — تعداد این صفحه: @Model.Items.Count</p>
 <section class="panel">
     @if (Model.Items.Count == 0)
     {
-        <div class="empty-state"><p>تسکی مطابق این فیلترها پیدا نشد.</p></div>
+        <div class="empty-state">
+            @if (!ViewData.ModelState.IsValid)
+            {
+                <p>فیلترهای واردشده را بررسی کنید.</p>
+            }
+            else if (Model.OnlyMine && Model.PersonalCountWithoutFilters > 0)
+            {
+                <p>تسکی مطابق فیلترها پیدا نشد. @Model.PersonalCountWithoutFilters تسک بدون این فیلترها دارید.</p>
+                <a asp-action="Index" asp-route-OnlyMine="true" asp-route-Archived="@(Model.Archived ? "true" : null)">پاک‌کردن فیلترها</a>
+            }
+            else if (Model.OnlyMine && !Model.HasLinkedMembership)
+            {
+                <p>حساب شما هنوز به هیچ ردیف عضویتی در پروژه‌ها وصل نیست.</p>
+                @if (Model.CanCreate)
+                {
+                    <p>از صفحهٔ اعضای پروژه، کنار ردیفی که مسئول تسک‌هاست «اتصال به حساب من» را بزنید.</p>
+                    <a asp-controller="Projects" asp-action="Index">پروژه‌ها</a>
+                }
+                else
+                {
+                    <p>از مدیر پروژه بخواهید حساب ورود شما را به ردیف عضویتتان وصل کند.</p>
+                }
+            }
+            else if (Model.OnlyMine)
+            {
+                <p>در حال حاضر هیچ تسکی به عضویت متصل به حساب شما واگذار نشده است.</p>
+                <a asp-action="Index">مشاهدهٔ تسک‌های پروژه‌ها</a>
+            }
+            else
+            {
+                <p>تسکی مطابق این فیلترها پیدا نشد.</p>
+            }
+        </div>
     }
     else
     {
         <div class="table-responsive">
             <table class="table align-middle">
-                <thead><tr><th>شناسه</th><th>عنوان</th><th>پروژه</th><th>مسئول</th><th>وضعیت</th><th>عملیات</th></tr></thead>
+                <thead><tr><th>شناسه</th><th>عنوان</th><th>پروژه</th><th>مسئول</th><th>وضعیت</th><th>اولویت</th><th>مهلت</th><th>عملیات</th></tr></thead>
                 <tbody>
                 @foreach (var item in Model.Items)
                 {
                     <tr>
-                        <td>@item.Id</td><td class="text-break">@item.Title</td>
+                        <td>@item.Id</td><td class="text-break"><a asp-action="Details" asp-route-id="@item.Id">@item.Title</a></td>
                         <td class="text-break">@item.ProjectName</td>
                         <td class="text-break">@item.AssignedMemberName</td><td>@item.StatusText</td>
+                        <td>@WorkItemLabels.Priority(item.Priority)</td>
+                        <td><bdi>@(item.DueDate?.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture) ?? "—")</bdi></td>
                         <td>
                             <div class="d-flex flex-wrap gap-2">
-                                @if (item.CanManage)
+                                @if (item.CanManage && !Model.Archived)
                                 {
-                                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-secondary">ویرایش عنوان</a>
+                                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-secondary">ویرایش</a>
                                     <a asp-action="Assign" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary">تعیین مسئول</a>
                                 }
                                 @if (item.CanChangeStatus)
@@ -120,13 +182,13 @@
             @if (Model.HasPreviousPage)
             {
                 <a asp-action="Index" asp-route-PageNumber="@(Model.PageNumber - 1)" asp-route-OnlyMine="@Model.OnlyMine"
-                   asp-route-SearchText="@Model.SearchText" asp-route-ProjectId="@Model.ProjectId" asp-route-Status="@Model.Status"
+                   asp-route-SearchText="@Model.SearchText" asp-route-ProjectId="@Model.ProjectId" asp-route-Status="@Model.Status" asp-route-Priority="@Model.Priority" asp-route-Archived="@(Model.Archived ? "true" : null)"
                    class="btn btn-outline-secondary">قبلی</a>
             }
             @if (Model.HasNextPage)
             {
                 <a asp-action="Index" asp-route-PageNumber="@(Model.PageNumber + 1)" asp-route-OnlyMine="@Model.OnlyMine"
-                   asp-route-SearchText="@Model.SearchText" asp-route-ProjectId="@Model.ProjectId" asp-route-Status="@Model.Status"
+                   asp-route-SearchText="@Model.SearchText" asp-route-ProjectId="@Model.ProjectId" asp-route-Status="@Model.Status" asp-route-Priority="@Model.Priority" asp-route-Archived="@(Model.Archived ? "true" : null)"
                    class="btn btn-outline-secondary">بعدی</a>
             }
         </div>

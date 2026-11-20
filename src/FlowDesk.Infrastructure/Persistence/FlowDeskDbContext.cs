@@ -1,4 +1,4 @@
-﻿using FlowDesk.Domain.Entities;
+using FlowDesk.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace FlowDesk.Infrastructure.Persistence;
@@ -12,8 +12,10 @@ public class FlowDeskDbContext : DbContext
 
     public DbSet<Project> Projects { get; set; }
     public DbSet<WorkItem> WorkItems { get; set; }
+    public DbSet<WorkItemActivity> WorkItemActivities { get; set; }
     public DbSet<TeamMember> TeamMembers { get; set; }
     public DbSet<ProjectMember> ProjectMembers { get; set; }
+    public DbSet<ProjectInvitation> ProjectInvitations { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -29,8 +31,20 @@ public class FlowDeskDbContext : DbContext
             .HasIndex(project => project.Name)
             .IsUnique();
 
-        modelBuilder.Entity<WorkItem>()
-            .Property(item => item.Title)
+        var workItem = modelBuilder.Entity<WorkItem>();
+        workItem.Property(x => x.Description).HasMaxLength(2000);
+        workItem.Property(x => x.Revision).IsConcurrencyToken();
+        workItem.HasIndex(x => new { x.ProjectId, x.ArchivedAtUtc });
+
+        var activity = modelBuilder.Entity<WorkItemActivity>();
+        activity.Property(x => x.ActorUserId).HasMaxLength(450).IsRequired();
+        activity.Property(x => x.AuthorName).HasMaxLength(200);
+        activity.Property(x => x.Message).HasMaxLength(1000);
+        activity.HasIndex(x => new { x.WorkItemId, x.Id });
+        activity.HasOne(x => x.WorkItem).WithMany().HasForeignKey(x => x.WorkItemId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        workItem.Property(item => item.Title)
             .HasMaxLength(200)
             .UseCollation("Latin1_General_100_CI_AS")
             .IsRequired();
@@ -83,6 +97,17 @@ public class FlowDeskDbContext : DbContext
 
         modelBuilder.Entity<ProjectMember>()
             .HasAlternateKey(member => new { member.ProjectId, member.Id });
+
+        var invitation = modelBuilder.Entity<ProjectInvitation>();
+        invitation.Property(x => x.TokenHash).HasMaxLength(64).IsRequired();
+        invitation.Property(x => x.NormalizedEmail).HasMaxLength(256).IsRequired();
+        invitation.Property(x => x.Version).IsConcurrencyToken();
+        invitation.HasIndex(x => x.MembershipId).IsUnique();
+        invitation.HasIndex(x => x.TokenHash).IsUnique();
+        invitation.HasOne<ProjectMember>().WithMany()
+            .HasForeignKey(x => new { x.ProjectId, x.MembershipId })
+            .HasPrincipalKey(member => new { member.ProjectId, member.Id })
+            .OnDelete(DeleteBehavior.Cascade);
 
         modelBuilder.Entity<WorkItem>()
             .HasOne<ProjectMember>()

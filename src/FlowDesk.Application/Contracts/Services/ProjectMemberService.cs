@@ -14,13 +14,16 @@ public class ProjectMemberService : IProjectMemberService
     private readonly IRepository<WorkItem> _workItemRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ProjectAccess _access;
+    private readonly IRepository<ProjectInvitation> _invitations;
+    private readonly TimeProvider _clock;
 
     public ProjectMemberService(
         IRepository<Project> projectRepository,
         IRepository<TeamMember> teamMemberRepository,
         IRepository<ProjectMember> projectMemberRepository,
         IRepository<WorkItem> workItemRepository,
-        IUnitOfWork unitOfWork, ProjectAccess access)
+        IUnitOfWork unitOfWork, ProjectAccess access,
+        IRepository<ProjectInvitation> invitations, TimeProvider clock)
     {
         _projectRepository = projectRepository;
         _teamMemberRepository = teamMemberRepository;
@@ -28,6 +31,8 @@ public class ProjectMemberService : IProjectMemberService
         _workItemRepository = workItemRepository;
         _unitOfWork = unitOfWork;
         _access = access;
+        _invitations = invitations;
+        _clock = clock;
     }
 
     public async Task<List<ProjectMemberListItemDto>> GetByProjectIdAsync(
@@ -165,6 +170,9 @@ public class ProjectMemberService : IProjectMemberService
             membership.LinkAccount(accountUserId);
         }
 
+        var invitation = (await _invitations.FindAsync(x =>
+            x.ProjectId == projectId && x.MembershipId == membershipId)).SingleOrDefault();
+        invitation?.Revoke(_clock.GetUtcNow());
         await _unitOfWork.SaveChangesAsync();
     }
 

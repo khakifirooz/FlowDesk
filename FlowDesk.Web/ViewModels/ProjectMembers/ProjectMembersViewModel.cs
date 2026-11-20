@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using FlowDesk.Application.DTOs.ProjectMembers;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
@@ -18,6 +18,10 @@ public class ProjectMembersViewModel
     [BindNever]
     [ValidateNever]
     public bool CanManageMembers { get; set; }
+
+    [BindNever]
+    [ValidateNever]
+    public HashSet<int> OwnMembershipIds { get; set; } = new();
 
     [BindNever]
     [ValidateNever]

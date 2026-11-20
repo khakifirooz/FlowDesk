@@ -15,6 +15,8 @@ builder.Services.AddControllersWithViews(options => options.Filters.Add<AccessEx
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, HttpCurrentUser>();
 builder.Services.AddScoped<ProjectAccess>();
+builder.Services.AddScoped<ProjectInvitationService>();
+builder.Services.AddSingleton(TimeProvider.System);
 
 var connectionString = builder.Configuration.GetConnectionString("FlowDeskConnection")
     ?? throw new InvalidOperationException("Connection string 'FlowDeskConnection' was not found.");

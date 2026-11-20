@@ -5,6 +5,8 @@ namespace FlowDesk.Application.DTOs.WorkItems;
 public class WorkItemSearchDto
 {
     public bool OnlyMine { get; set; }
+    public bool Archived { get; set; }
+    public WorkItemPriority? Priority { get; set; }
     public string? SearchText { get; set; }
     public int? ProjectId { get; set; }
     public int PageNumber { get; set; } = 1;

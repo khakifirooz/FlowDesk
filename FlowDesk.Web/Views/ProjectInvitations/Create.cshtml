@@ -1,0 +1,60 @@
+@model FlowDesk.Web.Controllers.ManageInvitationModel
+@{
+    ViewData["Title"] = "دعوت به پروژه";
+}
+<div class="page-head">
+    <div>
+        <h1>دعوت به پروژه</h1>
+        <p>@Model.Target.ProjectName / @Model.Target.MemberName</p>
+    </div>
+    <a asp-controller="ProjectMembers" asp-action="Index" asp-route-projectId="@Model.Target.ProjectId"
+       class="btn btn-outline-secondary">بازگشت به اعضا</a>
+</div>
+<section class="panel panel-pad form-panel">
+    <div asp-validation-summary="All" class="text-danger" role="alert"></div>
+    @if (TempData["SuccessMessage"] is string success)
+    {
+        <p class="alert alert-success" role="status">@success</p>
+    }
+    @if (TempData["ErrorMessage"] is string error)
+    {
+        <p class="alert alert-danger" role="alert">@error</p>
+    }
+    @if (Model.Target.IsLinked)
+    {
+        <p>این عضو در حال حاضر به یک حساب متصل است.</p>
+    }
+    else
+    {
+        @if (Model.Link is not null)
+        {
+            <div class="mb-4">
+                <label for="invitation-link" class="form-label">لینک دعوت</label>
+                <input id="invitation-link" dir="ltr" class="form-control" value="@Model.Link" readonly />
+                <p class="form-text">لینک را کپی کنید و فقط برای @Model.Email بفرستید. اعتبار آن سه روز است.</p>
+            </div>
+        }
+        <form asp-action="Create" method="post" data-prevent-double-submit>
+            <input type="hidden" name="projectId" value="@Model.Target.ProjectId" />
+            <input type="hidden" name="membershipId" value="@Model.Target.MembershipId" />
+            <label for="email" class="form-label">ایمیل عضو</label>
+            <input id="email" name="email" type="email" value="@Model.Email" class="form-control"
+                   dir="ltr" autocomplete="email" maxlength="256" required />
+            @if (Model.Target.HasActiveInvite)
+            {
+                <p class="form-text">ساخت لینک جدید، لینک قبلی را غیرفعال می‌کند.</p>
+            }
+            <button type="submit" class="btn btn-primary mt-3">
+                @(Model.Target.HasActiveInvite ? "ساخت لینک جدید" : "ساخت لینک دعوت")
+            </button>
+        </form>
+    }
+    @if (Model.Target.HasActiveInvite)
+    {
+        <form asp-action="Revoke" method="post" class="mt-3" data-confirm="لینک دعوت غیرفعال شود؟" data-prevent-double-submit>
+            <input type="hidden" name="projectId" value="@Model.Target.ProjectId" />
+            <input type="hidden" name="membershipId" value="@Model.Target.MembershipId" />
+            <button type="submit" class="btn btn-outline-danger">لغو دعوت</button>
+        </form>
+    }
+</section>

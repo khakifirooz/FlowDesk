@@ -1,14 +1,16 @@
-﻿@model FlowDesk.Web.ViewModels.WorkItems.EditWorkItemViewModel
+@using FlowDesk.Domain.Enums
+@using FlowDesk.Web.ViewModels.WorkItems
+@model FlowDesk.Web.ViewModels.WorkItems.EditWorkItemViewModel
 
 @{
-    ViewData["Title"] = "ویرایش عنوان تسک";
+    ViewData["Title"] = "ویرایش تسک";
 }
 
 <div class="page-head">
     <div>
-        <span class="eyebrow">تسک‌ها / ویرایش عنوان</span>
+        <span class="eyebrow">تسک‌ها / ویرایش</span>
 
-        <h1>ویرایش عنوان تسک</h1>
+        <h1>ویرایش تسک</h1>
 
         <p>عنوان کار باید در همین پروژه تکراری نباشد.</p>
     </div>
@@ -44,9 +46,32 @@
             </div>
         </div>
 
+
+        <div class="mb-3">
+            <label asp-for="Description" class="form-label"></label>
+            <textarea asp-for="Description" class="form-control" rows="3" maxlength="2000"></textarea>
+            <span asp-validation-for="Description"></span>
+        </div>
+        <div class="row g-3 mb-4">
+            <div class="col-sm-6">
+                <label asp-for="Priority" class="form-label"></label>
+                <select asp-for="Priority" class="form-select">
+                    @foreach (var priority in Enum.GetValues<WorkItemPriority>())
+                    {
+                        <option value="@priority">@WorkItemLabels.Priority(priority)</option>
+                    }
+                </select>
+                <span asp-validation-for="Priority"></span>
+            </div>
+            <div class="col-sm-6">
+                <label asp-for="DueDate" class="form-label">مهلت (میلادی)</label>
+                <input asp-for="DueDate" type="date" asp-format="{0:yyyy-MM-dd}" class="form-control" dir="ltr" />
+                <span asp-validation-for="DueDate"></span>
+            </div>
+        </div>
         <div class="form-actions">
             <button type="submit" class="btn btn-primary">
-                ذخیرهٔ عنوان
+                ذخیرهٔ تغییرات
             </button>
 
             <a asp-action="Index" class="btn btn-outline-secondary">

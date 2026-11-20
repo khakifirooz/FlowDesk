@@ -6,6 +6,9 @@ public class WorkItemListItemViewModel
 {
     public bool CanManage { get; set; }
     public bool CanChangeStatus { get; set; }
+    public WorkItemPriority Priority { get; set; }
+    public DateOnly? DueDate { get; set; }
+    public DateTimeOffset? ArchivedAtUtc { get; set; }
     public int Id { get; set; }
 
     public string Title { get; set; } = string.Empty;

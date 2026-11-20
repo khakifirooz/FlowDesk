@@ -9,11 +9,22 @@ namespace FlowDesk.Web.ViewModels.WorkItems;
 public class WorkItemIndexViewModel
 {
     public bool OnlyMine { get; set; }
+    public bool Archived { get; set; }
+
+    [EnumDataType(typeof(WorkItemPriority), ErrorMessage = "اولویت معتبر نیست.")]
+    public WorkItemPriority? Priority { get; set; }
 
     [BindNever]
     [ValidateNever]
     public bool CanCreate { get; set; }
 
+    [BindNever]
+    public bool HasLinkedMembership { get; set; }
+
+    [BindNever]
+    public int? PersonalCountWithoutFilters { get; set; }
+
+    [StringLength(200, ErrorMessage = "متن جست‌وجو حداکثر ۲۰۰ کاراکتر است.")]
     public string? SearchText { get; set; }
 
     [Range(1, int.MaxValue, ErrorMessage = "پروژه معتبر نیست.")]

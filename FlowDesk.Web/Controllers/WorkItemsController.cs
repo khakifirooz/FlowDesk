@@ -2,6 +2,8 @@ using System.Security.Claims;
 using FlowDesk.Application.Contracts.Services;
 using FlowDesk.Application.DTOs.WorkItems;
 using FlowDesk.Domain.Enums;
+using FlowDesk.Infrastructure.Identity;
+using Microsoft.AspNetCore.Identity;
 using FlowDesk.Web.ViewModels.WorkItems;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -15,14 +17,16 @@ public class WorkItemsController : Controller
     private readonly IWorkItemService _items;
     private readonly IProjectService _projects;
     private readonly IProjectMemberService _members;
+    private readonly UserManager<ApplicationUser> _accounts;
     private string? UserId => User.FindFirstValue(ClaimTypes.NameIdentifier);
 
     public WorkItemsController(IWorkItemService items, IProjectService projects,
-        IProjectMemberService members)
+        IProjectMemberService members, UserManager<ApplicationUser> accounts)
     {
         _items = items;
         _projects = projects;
         _members = members;
+        _accounts = accounts;
     }
 
     [HttpGet]
@@ -36,10 +40,12 @@ public class WorkItemsController : Controller
 
         var result = await _items.SearchAsync(new WorkItemSearchDto
         {
-            OnlyMine = model.OnlyMine, SearchText = model.SearchText,
-            ProjectId = model.ProjectId, Status = model.Status, PageNumber = model.PageNumber
+            OnlyMine = model.OnlyMine, SearchText = model.SearchText, Archived = model.Archived,
+            Priority = model.Priority, ProjectId = model.ProjectId, Status = model.Status, PageNumber = model.PageNumber
         });
         model.TotalCount = result.TotalCount;
+        model.HasLinkedMembership = result.HasLinkedMembership;
+        model.PersonalCountWithoutFilters = result.PersonalCountWithoutFilters;
         model.PageSize = result.PageSize;
         model.PageNumber = result.PageNumber;
         var projectNames = projects.ToDictionary(x => x.Id, x => x.Name);
@@ -49,17 +55,14 @@ public class WorkItemsController : Controller
         model.Items = result.Items.Select(item => new WorkItemListItemViewModel
         {
             Id = item.Id, Title = item.Title, Status = item.Status,
+            Priority = item.Priority, DueDate = item.DueDate, ArchivedAtUtc = item.ArchivedAtUtc,
             CanManage = item.CanManage, CanChangeStatus = item.CanChangeStatus,
             AssignedProjectMemberId = item.AssignedProjectMemberId,
             AssignedMemberName = item.AssignedProjectMemberId is int id && names.TryGetValue(id, out var name)
                 ? name : "بدون مسئول",
-            ProjectName = projectNames[item.ProjectId],
-            StatusText = item.Status switch
-            {
-                WorkItemStatus.ToDo => "انجام‌نشده",
-                WorkItemStatus.InProgress => "در حال انجام",
-                WorkItemStatus.Done => "انجام‌شده", _ => "نامشخص"
-            }
+            ProjectName = projectNames.TryGetValue(item.ProjectId, out var projectName)
+                ? projectName : "—",
+            StatusText = WorkItemLabels.Status(item.Status)
         }).ToList();
         return View(model);
     }
@@ -83,6 +86,7 @@ public class WorkItemsController : Controller
                 int id = await _items.CreateAsync(new CreateWorkItemDto
                 {
                     Title = model.Title, ProjectId = model.ProjectId!.Value,
+                    Description = model.Description, Priority = model.Priority, DueDate = model.DueDate,
                     AssignedProjectMemberId = model.AssignedProjectMemberId!.Value
                 });
                 TempData["SuccessMessage"] = $"تسک با شناسهٔ {id} ثبت شد.";
@@ -103,7 +107,12 @@ public class WorkItemsController : Controller
         var item = await _items.GetByIdAsync(id);
         if (item is null) return NotFound();
         if (!item.CanManage) return Forbid();
-        return View(new EditWorkItemViewModel { Id = item.Id, Title = item.Title });
+        if (item.ArchivedAtUtc is not null) return RedirectToAction(nameof(Details), new { id });
+        return View(new EditWorkItemViewModel
+        {
+            Id = item.Id, Title = item.Title, Description = item.Description,
+            Priority = item.Priority, DueDate = item.DueDate
+        });
     }
 
     [HttpPost, ValidateAntiForgeryToken]
@@ -116,14 +125,14 @@ public class WorkItemsController : Controller
         if (!ModelState.IsValid) return View(model);
         try
         {
-            await _items.ChangeTitleAsync(id, model.Title);
-            TempData["SuccessMessage"] = "عنوان تسک ویرایش شد.";
+            await _items.EditAsync(id, new EditWorkItemDto(model.Title, model.Description, model.Priority, model.DueDate));
+            TempData["SuccessMessage"] = "تسک ویرایش شد.";
             return RedirectToAction(nameof(Index), new { projectId = item.ProjectId });
         }
         catch (KeyNotFoundException) { return NotFound(); }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
         {
-            ModelState.AddModelError(nameof(model.Title), ex.Message);
+            ModelState.AddModelError(string.Empty, ex.Message);
             return View(model);
         }
     }
@@ -153,6 +162,7 @@ public class WorkItemsController : Controller
             var item = await _items.GetByIdAsync(id.Value);
             if (item is null) return NotFound();
             if (!item.CanManage) return Forbid();
+            if (item.ArchivedAtUtc is not null) return RedirectToAction(nameof(Details), new { id });
             if (projectId.HasValue && item.ProjectId != projectId) return BadRequest();
             model.ProjectId = item.ProjectId;
             model.AssignedProjectMemberId = item.AssignedProjectMemberId;
@@ -194,6 +204,56 @@ public class WorkItemsController : Controller
             members = members.Select(x => new { id = x.Id, name = x.FullName }),
             tasks = tasks.Select(x => new { id = x.Id, title = x.Title, assigneeId = x.AssignedProjectMemberId })
         });
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Details(int id, int activityPage = 1)
+    {
+        if (!ModelState.IsValid || id <= 0) return BadRequest();
+        var details = await _items.GetDetailsAsync(id, activityPage);
+        if (details is null) return NotFound();
+        var project = await _projects.GetByIdAsync(details.Item.ProjectId);
+        var assignee = "بدون مسئول";
+        if (details.Item.AssignedProjectMemberId is int membershipId)
+        {
+            var names = await _members.GetNamesByIdsAsync(new List<int> { membershipId });
+            if (names.TryGetValue(membershipId, out var name)) assignee = name;
+        }
+        return View(new WorkItemDetailsViewModel(details, project?.Name ?? "—", assignee));
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> AddComment([FromForm] int id, [FromForm] string? comment)
+    {
+        if (!ModelState.IsValid || id <= 0) return BadRequest();
+        var account = await _accounts.GetUserAsync(User);
+        if (account is null) return Forbid();
+        try
+        {
+            await _items.AddCommentAsync(id, comment,
+                string.IsNullOrWhiteSpace(account.FullName) ? "عضو پروژه" : account.FullName);
+            TempData["SuccessMessage"] = "نظر ثبت شد.";
+        }
+        catch (KeyNotFoundException) { return NotFound(); }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
+        {
+            TempData["ErrorMessage"] = ex.Message;
+        }
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> SetArchived([FromForm] int id, [FromForm] bool? archived)
+    {
+        if (!ModelState.IsValid || id <= 0 || !archived.HasValue) return BadRequest();
+        try
+        {
+            await _items.SetArchivedAsync(id, archived.Value);
+            TempData["SuccessMessage"] = archived.Value ? "تسک بایگانی شد." : "تسک به فهرست فعال برگشت.";
+        }
+        catch (KeyNotFoundException) { return NotFound(); }
+        catch (InvalidOperationException ex) { TempData["ErrorMessage"] = ex.Message; }
+        return RedirectToAction(nameof(Details), new { id });
     }
 
     private async Task<List<SelectListItem>> ManagedProjectsAsync()

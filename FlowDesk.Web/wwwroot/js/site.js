@@ -226,6 +226,15 @@
         }
     });
 
+    document.querySelectorAll("form[data-work-item-filters]").forEach(form => {
+        form.addEventListener("change", event => {
+            if (event.target instanceof HTMLSelectElement &&
+                event.target.hasAttribute("data-apply-filter")) {
+                form.requestSubmit();
+            }
+        });
+    });
+
     document.addEventListener("submit", event => {
         const form = event.target;
 

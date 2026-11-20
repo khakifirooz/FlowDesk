@@ -1,0 +1,114 @@
+@using FlowDesk.Domain.Entities
+@using FlowDesk.Web.ViewModels.WorkItems
+@model WorkItemDetailsViewModel
+@{
+    var item = Model.Details.Item;
+    bool archived = item.ArchivedAtUtc.HasValue;
+    ViewData["Title"] = item.Title;
+}
+<div class="page-head">
+    <div>
+        <span class="eyebrow">@Model.ProjectName / تسک @item.Id</span>
+        <h1 class="text-break">@item.Title</h1>
+    </div>
+    <a asp-action="Index" asp-route-ProjectId="@item.ProjectId" asp-route-Archived="@archived"
+       class="btn btn-outline-secondary">تسک‌های پروژه</a>
+</div>
+@if (TempData["SuccessMessage"] is string success)
+{
+    <div class="alert alert-success" role="status">@success</div>
+}
+@if (TempData["ErrorMessage"] is string error)
+{
+    <div class="alert alert-danger" role="alert">@error</div>
+}
+@if (archived)
+{
+    <p class="alert alert-secondary">این تسک بایگانی شده و تا زمان بازگردانی فقط خواندنی است.</p>
+}
+<section class="panel panel-pad mb-4">
+    <dl class="row mb-3">
+        <dt class="col-sm-3">مسئول</dt><dd class="col-sm-9">@Model.AssigneeName</dd>
+        <dt class="col-sm-3">وضعیت</dt><dd class="col-sm-9">@WorkItemLabels.Status(item.Status)</dd>
+        <dt class="col-sm-3">اولویت</dt><dd class="col-sm-9">@WorkItemLabels.Priority(item.Priority)</dd>
+        <dt class="col-sm-3">مهلت (میلادی)</dt><dd class="col-sm-9"><bdi>@(item.DueDate?.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture) ?? "—")</bdi></dd>
+    </dl>
+    <h2>شرح تسک</h2>
+    <p class="text-break" style="white-space: pre-wrap;">@(item.Description ?? "هنوز شرحی برای این تسک نوشته نشده است.")</p>
+    @if (item.CanManage)
+    {
+        <div class="d-flex flex-wrap gap-2">
+            @if (!archived)
+            {
+                <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-outline-primary">ویرایش تسک</a>
+                <a asp-action="Assign" asp-route-id="@item.Id" class="btn btn-outline-secondary">تغییر مسئول</a>
+            }
+            <form asp-action="SetArchived" method="post" data-prevent-double-submit
+                  data-confirm="@(archived ? "تسک به فهرست فعال برگردد؟" : "این تسک بایگانی شود؟")">
+                <input type="hidden" name="id" value="@item.Id" />
+                <input type="hidden" name="archived" value="@(!archived ? "true" : "false")" />
+                <button class="btn btn-outline-secondary" type="submit">@(archived ? "بازگردانی" : "بایگانی")</button>
+            </form>
+        </div>
+    }
+</section>
+<section class="panel panel-pad">
+    <h2>گفت‌وگو و تاریخچه</h2>
+    @if (!archived)
+    {
+        <form asp-action="AddComment" method="post" class="mb-4" data-prevent-double-submit>
+            <input type="hidden" name="id" value="@item.Id" />
+            <label for="comment" class="form-label">نظر شما</label>
+            <textarea id="comment" name="comment" rows="3" class="form-control" maxlength="1000" required></textarea>
+            <button type="submit" class="btn btn-primary mt-2">ثبت نظر</button>
+        </form>
+    }
+    @if (Model.Details.Activity.Length == 0)
+    {
+        <p class="text-muted">هنوز فعالیتی ثبت نشده است.</p>
+    }
+    else
+    {
+        <ol class="list-unstyled mb-0">
+        @foreach (var entry in Model.Details.Activity)
+        {
+            string label = entry.Kind switch
+            {
+                WorkItemActivityKind.Created => "تسک ایجاد شد",
+                WorkItemActivityKind.Edited => "جزئیات تسک ویرایش شد",
+                WorkItemActivityKind.Reassigned => "مسئول تسک تغییر کرد",
+                WorkItemActivityKind.Started => "تسک شروع شد",
+                WorkItemActivityKind.Completed => "تسک تکمیل شد",
+                WorkItemActivityKind.Reopened => "تسک بازگشایی شد",
+                WorkItemActivityKind.Archived => "تسک بایگانی شد",
+                WorkItemActivityKind.Restored => "تسک به فهرست فعال برگشت",
+                _ => entry.AuthorName ?? "نظر"
+            };
+            <li class="border-top py-3">
+                <div class="d-flex flex-wrap justify-content-between gap-2">
+                    <strong class="text-break">@label</strong>
+                    <time class="text-muted small" dir="ltr" datetime="@entry.OccurredAtUtc.ToString("O")">@entry.OccurredAtUtc.ToString("yyyy-MM-dd HH:mm", System.Globalization.CultureInfo.InvariantCulture) UTC</time>
+                </div>
+                @if (entry.Message is not null)
+                {
+                    <p class="text-break mt-2 mb-0" style="white-space: pre-wrap;">@entry.Message</p>
+                }
+            </li>
+        }
+        </ol>
+        @if (Model.Details.ActivityPages > 1)
+        {
+            <nav aria-label="صفحه‌بندی تاریخچه" class="d-flex flex-wrap align-items-center gap-2">
+                @if (Model.Details.ActivityPage > 1)
+                {
+                    <a asp-action="Details" asp-route-id="@item.Id" asp-route-activityPage="@(Model.Details.ActivityPage - 1)" class="btn btn-outline-secondary">جدیدتر</a>
+                }
+                <span>صفحهٔ @Model.Details.ActivityPage از @Model.Details.ActivityPages</span>
+                @if (Model.Details.ActivityPage < Model.Details.ActivityPages)
+                {
+                    <a asp-action="Details" asp-route-id="@item.Id" asp-route-activityPage="@(Model.Details.ActivityPage + 1)" class="btn btn-outline-secondary">قدیمی‌تر</a>
+                }
+            </nav>
+        }
+    }
+</section>
