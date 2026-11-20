@@ -26,7 +26,9 @@ internal static class FlowDeskModelConfiguration
         activity.Property(x => x.ActorUserId).HasMaxLength(450).IsRequired();
         activity.Property(x => x.AuthorName).HasMaxLength(200);
         activity.Property(x => x.Message).HasMaxLength(WorkItemActivity.MessageMaxLength);
+        activity.Property(x => x.CompletionRecipientUserId).HasMaxLength(450);
         activity.HasIndex(x => new { x.WorkItemId, x.Id });
+        activity.HasAlternateKey(x => new { x.WorkItemId, x.Id });
         activity.HasOne(x => x.WorkItem).WithMany().HasForeignKey(x => x.WorkItemId)
             .OnDelete(DeleteBehavior.Restrict);
 
@@ -84,10 +86,39 @@ internal static class FlowDeskModelConfiguration
         modelBuilder.Entity<ProjectMember>()
             .HasAlternateKey(member => new { member.ProjectId, member.Id });
 
+        var review = modelBuilder.Entity<WorkItemReview>();
+        review.ToTable(t =>
+        {
+            t.HasCheckConstraint("CK_WorkItemReviews_Score", "[Score] IS NULL OR [Score] BETWEEN 0 AND 10");
+            t.HasCheckConstraint("CK_WorkItemReviews_Content", "[Score] IS NOT NULL OR [Feedback] IS NOT NULL");
+        });
+        review.Property(x => x.RecipientName).HasMaxLength(200).IsRequired();
+        review.Property(x => x.RecipientUserId).HasMaxLength(450);
+        review.Property(x => x.ReviewerUserId).HasMaxLength(450).IsRequired();
+        review.Property(x => x.ReviewerName).HasMaxLength(200).IsRequired();
+        review.Property(x => x.Feedback).HasMaxLength(WorkItemReview.FeedbackMaxLength);
+        review.Property(x => x.Revision).IsConcurrencyToken();
+        review.HasIndex(x => x.CompletionActivityId).IsUnique();
+        review.HasOne<WorkItemActivity>().WithMany()
+            .HasForeignKey(x => new { x.WorkItemId, Id = x.CompletionActivityId })
+            .HasPrincipalKey(x => new { x.WorkItemId, x.Id })
+            .OnDelete(DeleteBehavior.Restrict);
+
+        var comment = modelBuilder.Entity<ProjectMemberComment>();
+        comment.Property(x => x.AuthorUserId).HasMaxLength(450).IsRequired();
+        comment.Property(x => x.AuthorName).HasMaxLength(200).IsRequired();
+        comment.Property(x => x.Body).HasMaxLength(ProjectMemberComment.BodyMaxLength).IsRequired();
+        comment.HasIndex(x => new { x.ProjectId, x.SubjectMemberId, x.Id });
+        comment.HasOne<ProjectMember>().WithMany()
+            .HasForeignKey(x => new { x.ProjectId, Id = x.SubjectMemberId })
+            .HasPrincipalKey(x => new { x.ProjectId, x.Id })
+            .OnDelete(DeleteBehavior.Cascade);
+
         var invitation = modelBuilder.Entity<ProjectInvitation>();
         invitation.Property(x => x.TokenHash).HasMaxLength(64).IsRequired();
         invitation.Property(x => x.NormalizedEmail).HasMaxLength(256).IsRequired();
         invitation.Property(x => x.Version).IsConcurrencyToken();
+        invitation.Property(x => x.PendingUserId).HasMaxLength(450);
         invitation.HasIndex(x => x.MembershipId).IsUnique();
         invitation.HasIndex(x => x.TokenHash).IsUnique();
         invitation.HasOne<ProjectMember>().WithMany()

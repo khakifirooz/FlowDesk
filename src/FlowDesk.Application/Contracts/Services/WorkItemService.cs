@@ -103,11 +103,11 @@ public class WorkItemService : IWorkItemService
             (archived ? item.ArchivedAtUtc != null : item.ArchivedAtUtc == null) &&
             (!onlyMine || (item.AssignedProjectMemberId.HasValue &&
                 ownIds.Contains(item.AssignedProjectMemberId.Value)));
+        var inSelectedProject = And(scopedTasks, item => !projectId.HasValue || item.ProjectId == projectId);
         Expression<Func<WorkItem, bool>> filters = item =>
-            (!projectId.HasValue || item.ProjectId == projectId) &&
             (!status.HasValue || item.Status == status) &&
             (!priority.HasValue || item.Priority == priority);
-        var predicate = And(scopedTasks, filters);
+        var predicate = And(inSelectedProject, filters);
 
         foreach (string term in searchText.Split(' ', StringSplitOptions.RemoveEmptyEntries)
                      .Distinct(StringComparer.OrdinalIgnoreCase))
@@ -151,8 +151,15 @@ public class WorkItemService : IWorkItemService
                 : 0;
         }
 
+        int? archiveCount = archived && totalCount == 0
+            ? (status.HasValue || priority.HasValue || searchText.Length > 0
+                ? await _items.CountAsync(inSelectedProject)
+                : 0)
+            : null;
+
         return new WorkItemSearchResult
         {
+            ArchiveCountBeforeFilters = archiveCount,
             HasLinkedMembership = ownIds.Count > 0,
             PersonalCountWithoutFilters = personalCount,
             Items = items.Select(x => Map(x, scope)).ToList(),
@@ -216,6 +223,7 @@ public class WorkItemService : IWorkItemService
             now, note, authorName);
         item.ConfirmCompletion(now);
         await GuardMemberWriteAsync(scope, item, assigneeOnly: true);
+        await CaptureCompletionRecipientAsync(item, completion);
         await _activity.AddAsync(completion);
         await _unitOfWork.SaveChangesAsync();
         return true;
@@ -318,9 +326,19 @@ public class WorkItemService : IWorkItemService
     private async Task SaveWithActivityAsync(WorkItem item, ProjectScope scope, WorkItemActivityKind kind,
         string? authorName = null, DateTimeOffset? occurredAtUtc = null)
     {
-        await _activity.AddAsync(new WorkItemActivity(item, kind, scope.UserId,
-            occurredAtUtc ?? _clock.GetUtcNow(), authorName: authorName));
+        var entry = new WorkItemActivity(item, kind, scope.UserId,
+            occurredAtUtc ?? _clock.GetUtcNow(), authorName: authorName);
+        if (kind == WorkItemActivityKind.Completed)
+            await CaptureCompletionRecipientAsync(item, entry);
+        await _activity.AddAsync(entry);
         await _unitOfWork.SaveChangesAsync();
+    }
+
+    private async Task CaptureCompletionRecipientAsync(WorkItem item, WorkItemActivity entry)
+    {
+        var membership = item.AssignedProjectMemberId is int memberId
+            ? await _members.GetByIdAsync(memberId) : null;
+        entry.CaptureCompletionRecipient(membership);
     }
 
     private async Task<WorkItem> RequireItemAsync(int id) =>

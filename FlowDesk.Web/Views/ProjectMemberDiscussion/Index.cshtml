@@ -1,0 +1,73 @@
+@using FlowDesk.Domain.Entities
+@using static FlowDesk.Web.Formatting.FlowDeskFormat
+@model FlowDesk.Application.DTOs.ProjectMembers.MemberDiscussionDto
+@{
+    ViewData["Title"] = "دیدگاه‌های عضو پروژه";
+}
+
+<div class="page-head">
+    <div>
+        <span class="eyebrow">اعضای پروژه</span>
+        <h1>دیدگاه‌ها دربارهٔ <bdi>@Model.MemberName</bdi></h1>
+        <p>دیدگاه‌های مرتبط با همکاری در این پروژه را اینجا ثبت کنید. این گفت‌وگو برای اعضای همین پروژه قابل مشاهده است.</p>
+    </div>
+    <a asp-controller="ProjectMembers" asp-action="Index" asp-route-projectId="@Model.ProjectId"
+       class="btn btn-outline-secondary">بازگشت به اعضا</a>
+</div>
+
+@if (TempData["SuccessMessage"] is string success)
+{
+    <div class="alert alert-success" role="status">@success</div>
+}
+@if (TempData["ErrorMessage"] is string error)
+{
+    <div class="alert alert-danger" role="alert">@error</div>
+}
+
+<section class="panel panel-pad">
+    <form asp-action="Add" method="post" class="mb-4" data-prevent-double-submit>
+        <input type="hidden" name="projectId" value="@Model.ProjectId" />
+        <input type="hidden" name="membershipId" value="@Model.MembershipId" />
+        <label for="member-comment" class="form-label">دیدگاه شما</label>
+        <textarea id="member-comment" name="comment" rows="3" class="form-control" required
+                  maxlength="@ProjectMemberComment.BodyMaxLength" aria-describedby="member-comment-help"></textarea>
+        <div id="member-comment-help" class="form-text">دیدگاه با نام حساب شما ثبت می‌شود.</div>
+        <button type="submit" class="btn btn-primary mt-3">ثبت دیدگاه</button>
+    </form>
+    <h2>دیدگاه‌های ثبت‌شده</h2>
+    @if (Model.Comments.Count == 0)
+    {
+        <p class="text-muted mb-0">هنوز دیدگاهی ثبت نشده است.</p>
+    }
+    else
+    {
+        <ol class="list-unstyled mb-0">
+            @foreach (var entry in Model.Comments)
+            {
+                <li class="border-top py-3">
+                    <div class="d-flex flex-wrap justify-content-between gap-2">
+                        <strong><bdi>@entry.AuthorName</bdi></strong>
+                        <time class="text-muted small" dir="ltr" datetime="@entry.CreatedAtUtc.ToString("O")">@TehranDateTime(entry.CreatedAtUtc)</time>
+                    </div>
+                    <p class="text-break mt-2 mb-0" style="white-space: pre-wrap;">@entry.Body</p>
+                </li>
+            }
+        </ol>
+    }
+    @if (Model.TotalPages > 1)
+    {
+        <nav aria-label="صفحه‌بندی دیدگاه‌ها" class="d-flex flex-wrap align-items-center gap-2">
+            @if (Model.Page > 1)
+            {
+                <a asp-action="Index" asp-route-projectId="@Model.ProjectId" asp-route-membershipId="@Model.MembershipId"
+                   asp-route-page="@(Model.Page - 1)" class="btn btn-outline-secondary">جدیدتر</a>
+            }
+            <span>صفحهٔ @Number(Model.Page) از @Number(Model.TotalPages)</span>
+            @if (Model.Page < Model.TotalPages)
+            {
+                <a asp-action="Index" asp-route-projectId="@Model.ProjectId" asp-route-membershipId="@Model.MembershipId"
+                   asp-route-page="@(Model.Page + 1)" class="btn btn-outline-secondary">قدیمی‌تر</a>
+            }
+        </nav>
+    }
+</section>

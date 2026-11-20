@@ -43,6 +43,9 @@ public class WorkItemIndexViewModel : IValidatableObject
     [BindNever]
     public int? PersonalCountWithoutFilters { get; set; }
 
+    [BindNever]
+    public int? ArchiveCountBeforeFilters { get; set; }
+
     [StringLength(200, ErrorMessage = "متن جست‌وجو حداکثر ۲۰۰ کاراکتر است.")]
     public string? SearchText { get; set; }
 

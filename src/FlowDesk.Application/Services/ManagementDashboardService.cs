@@ -12,6 +12,6 @@ public sealed class ManagementDashboardService(
         string userId = currentUser.UserId
             ?? throw new UnauthorizedAccessException("ابتدا وارد حساب شوید.");
 
-        return reader.ReadAsync(userId, projectId, FlowDeskCalendar.Today(clock), cancellationToken);
+        return reader.ReadAsync(userId, projectId, FlowDeskCalendar.Today(clock), clock.GetUtcNow(), cancellationToken);
     }
 }

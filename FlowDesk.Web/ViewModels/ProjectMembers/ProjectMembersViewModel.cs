@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using FlowDesk.Application.Contracts.Services;
 using FlowDesk.Application.DTOs.ProjectMembers;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
@@ -34,4 +35,10 @@ public class ProjectMembersViewModel
     [BindNever]
     [ValidateNever]
     public List<ProjectMemberListItemDto> Members { get; set; } = new();
+
+    [BindNever, ValidateNever]
+    public Dictionary<int, string> MemberEmails { get; set; } = new();
+
+    [BindNever, ValidateNever]
+    public Dictionary<int, ManagerInvitationState> InvitationStatus { get; set; } = new();
 }

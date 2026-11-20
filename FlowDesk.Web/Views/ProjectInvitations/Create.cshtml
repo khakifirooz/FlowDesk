@@ -24,6 +24,17 @@
     {
         <p>این عضو در حال حاضر به یک حساب متصل است.</p>
     }
+    else if (Model.Target.PendingUserId is not null && Model.Target.Version is Guid version)
+    {
+        <p class="alert alert-info">درخواست این دعوت ثبت شده است. پیش از تأیید، ایمیل دعوت را با اطلاعات عضو تطبیق دهید.</p>
+        <p>ایمیل درخواست: <bdi>@Model.Target.InvitedEmail</bdi></p>
+        <form asp-action="Approve" method="post" data-prevent-double-submit>
+            <input type="hidden" name="projectId" value="@Model.Target.ProjectId" />
+            <input type="hidden" name="membershipId" value="@Model.Target.MembershipId" />
+            <input type="hidden" name="version" value="@version" />
+            <button class="btn btn-primary" type="submit">تأیید عضویت</button>
+        </form>
+    }
     else
     {
         @if (Model.Link is not null)
@@ -38,7 +49,7 @@
             <input type="hidden" name="projectId" value="@Model.Target.ProjectId" />
             <input type="hidden" name="membershipId" value="@Model.Target.MembershipId" />
             <label for="email" class="form-label">ایمیل عضو</label>
-            <input id="email" name="email" type="email" value="@Model.Email" class="form-control"
+            <input id="email" name="email" type="email" value="@(Model.Email ?? Model.Target.InvitedEmail)" class="form-control"
                    dir="ltr" autocomplete="email" maxlength="256" required />
             @if (Model.Target.HasActiveInvite)
             {
@@ -49,12 +60,13 @@
             </button>
         </form>
     }
-    @if (Model.Target.HasActiveInvite)
+    @if (!Model.Target.IsLinked && Model.Target.HasActiveInvite && Model.Target.Version is Guid revokeVersion)
     {
         <form asp-action="Revoke" method="post" class="mt-3" data-confirm="لینک دعوت غیرفعال شود؟" data-prevent-double-submit>
             <input type="hidden" name="projectId" value="@Model.Target.ProjectId" />
             <input type="hidden" name="membershipId" value="@Model.Target.MembershipId" />
-            <button type="submit" class="btn btn-outline-danger">لغو دعوت</button>
+            <input type="hidden" name="version" value="@revokeVersion" />
+            <button type="submit" class="btn btn-outline-danger">@(Model.Target.PendingUserId is not null ? "رد درخواست" : "لغو دعوت")</button>
         </form>
     }
 </section>

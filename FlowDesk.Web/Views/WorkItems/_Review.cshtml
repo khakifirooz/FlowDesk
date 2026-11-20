@@ -1,0 +1,55 @@
+@using FlowDesk.Domain.Entities
+@using static FlowDesk.Web.Formatting.FlowDeskFormat
+@model FlowDesk.Web.ViewModels.WorkItems.WorkItemReviewPanelViewModel
+@{
+    var panel = Model.Review;
+    var review = panel.Review;
+}
+<section id="task-review" class="panel panel-pad mb-4" aria-labelledby="task-review-title">
+    <h2 id="task-review-title">ارزیابی مدیر پروژه</h2>
+    @if (review is not null)
+    {
+        <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+            @if (review.Score is int score)
+            {
+                <span class="status status-done">@Number(score) از @Number(WorkItemReview.MaxScore)</span>
+            }
+            else
+            {
+                <span class="status status-todo">بازخورد بدون نمره</span>
+            }
+            <span class="text-muted small">مدیر: <bdi>@review.ReviewerName</bdi></span>
+            <time class="text-muted small" dir="ltr" datetime="@review.ReviewedAtUtc.ToString("O")">@TehranDateTime(review.ReviewedAtUtc)</time>
+        </div>
+        @if (review.Feedback is not null)
+        {
+            <p class="text-break mb-3" style="white-space: pre-wrap;">@review.Feedback</p>
+        }
+    }
+
+    @if (panel.CanSave && panel.SubmissionId is int submissionId)
+    {
+        <form asp-action="SaveReview" method="post" data-prevent-double-submit>
+            <input type="hidden" name="id" value="@Model.TaskId" />
+            <input type="hidden" name="submissionId" value="@submissionId" />
+            <input type="hidden" name="revision" value="@review?.Revision" />
+            <input type="hidden" name="returnUrl" value="@Model.BackUrl" />
+
+            <p class="form-text">این ارزیابی برای <strong><bdi>@panel.RecipientName</bdi></strong> ثبت می‌شود. فقط مدیر پروژه و حساب این عضو می‌توانند آن را ببینند.</p>
+            <div class="mb-3">
+                <label for="review-score" class="form-label">نمره (۰ تا ۱۰)</label>
+                <input id="review-score" type="number" inputmode="numeric" class="form-control" style="max-width: 10rem;"
+                       name="score" min="0" max="@WorkItemReview.MaxScore" step="1" value="@review?.Score" />
+            </div>
+            <label for="review-feedback" class="form-label">بازخورد برای عضو</label>
+            <textarea id="review-feedback" name="feedback" rows="3" class="form-control"
+                      maxlength="@WorkItemReview.FeedbackMaxLength" aria-describedby="review-help">@review?.Feedback</textarea>
+            <p class="form-text" id="review-help">ثبت نمره یا بازخورد کافی است؛ می‌توانید هر دو را هم وارد کنید.</p>
+            <button type="submit" class="btn btn-primary">@(review is null ? "ثبت ارزیابی" : "ذخیرهٔ تغییرات ارزیابی")</button>
+        </form>
+    }
+    else if (panel.UnavailableMessage is not null)
+    {
+        <p class="text-muted mb-0">@panel.UnavailableMessage</p>
+    }
+</section>

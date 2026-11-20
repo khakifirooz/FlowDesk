@@ -4,7 +4,7 @@ using FlowDesk.Domain.Enums;
 namespace FlowDesk.Web.ViewModels.WorkItems;
 
 public sealed record WorkItemDetailsViewModel(
-    WorkItemDetailsDto Details, string ProjectName, string AssigneeName, string? BackUrl, DateOnly Today);
+    WorkItemDetailsDto Details, string ProjectName, string AssigneeName, string? BackUrl, DateOnly Today, WorkItemReviewPage? Review);
 
 public static class WorkItemLabels
 {

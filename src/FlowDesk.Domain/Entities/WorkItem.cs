@@ -131,6 +131,14 @@ public class WorkItem : BaseEntity
         Touch();
     }
 
+    public void ReviewRecorded()
+    {
+        RequireActive();
+        if (Status != WorkItemStatus.Done)
+            throw new InvalidOperationException("فقط تسک انجام‌شده قابل ارزیابی است.");
+        Touch();
+    }
+
     public void CommentAdded()
     {
         RequireActive();

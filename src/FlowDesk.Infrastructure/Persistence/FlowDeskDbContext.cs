@@ -14,6 +14,8 @@ public class FlowDeskDbContext : DbContext
     public DbSet<Project> Projects { get; set; }
     public DbSet<WorkItem> WorkItems { get; set; }
     public DbSet<WorkItemActivity> WorkItemActivities { get; set; }
+    public DbSet<WorkItemReview> WorkItemReviews { get; set; }
+    public DbSet<ProjectMemberComment> ProjectMemberComments { get; set; }
     public DbSet<TeamMember> TeamMembers { get; set; }
     public DbSet<ProjectMember> ProjectMembers { get; set; }
     public DbSet<ProjectInvitation> ProjectInvitations { get; set; }

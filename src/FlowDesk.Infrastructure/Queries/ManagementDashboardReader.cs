@@ -12,7 +12,7 @@ public sealed class ManagementDashboardReader(FlowDeskDbContext db) : IManagemen
     private const int PreviewLimit = 8;
 
     public async Task<ManagementDashboardDto?> ReadAsync(
-        string managerUserId, int? projectId, DateOnly today, CancellationToken cancellationToken)
+        string managerUserId, int? projectId, DateOnly today, DateTimeOffset now, CancellationToken cancellationToken)
     {
         var managed = db.Projects.AsNoTracking().Where(p => p.ManagerUserId == managerUserId);
         var projects = await managed.OrderBy(p => p.Name).ThenBy(p => p.Id)
@@ -23,7 +23,7 @@ public sealed class ManagementDashboardReader(FlowDeskDbContext db) : IManagemen
 
         var visible = projects.Where(p => !projectId.HasValue || p.Id == projectId.Value);
         if (projects.Count == 0)
-            return new(today, projectId, projects, [], new(0, 0, 0, 0, 0), [], [], []);
+            return new(today, projectId, projects, [], new(0, 0, 0, 0, 0), [], [], [], [], [], []);
 
         var selectedProjects = projectId is int id ? managed.Where(p => p.Id == id) : managed;
         var items = from item in db.WorkItems.AsNoTracking()
@@ -95,6 +95,81 @@ public sealed class ManagementDashboardReader(FlowDeskDbContext db) : IManagemen
             .Take(PreviewLimit)
             .ToListAsync(cancellationToken);
 
-        return new(today, projectId, projects, progress, counts, deadlines, workload, activity);
+        var roster = await (
+            from membership in db.ProjectMembers.AsNoTracking()
+            join project in selectedProjects on membership.ProjectId equals project.Id
+            join member in db.TeamMembers.AsNoTracking() on membership.TeamMemberId equals member.Id
+            select new { membership.Id, ProjectId = project.Id, ProjectName = project.Name, member.FullName })
+            .ToListAsync(cancellationToken);
+
+        var totalsByMembership = await active.Where(x => x.Item.AssignedProjectMemberId.HasValue)
+            .GroupBy(x => x.Item.AssignedProjectMemberId!.Value)
+            .Select(g => new { Id = g.Key, Total = g.Count(),
+                Completed = g.Count(x => x.Item.Status == WorkItemStatus.Done) })
+            .ToDictionaryAsync(x => x.Id, cancellationToken);
+
+        var latestRatings =
+            from review in db.WorkItemReviews.AsNoTracking()
+            join row in items on review.WorkItemId equals row.Item.Id
+            where !db.WorkItemReviews.Any(newer => newer.WorkItemId == review.WorkItemId &&
+                newer.CompletionActivityId > review.CompletionActivityId)
+            select new { review.RecipientMembershipId, review.RecipientName, review.Score,
+                row.Item.ProjectId, row.ProjectName };
+
+        var ratingsByMembership = await latestRatings
+            .GroupBy(x => new { x.RecipientMembershipId, x.ProjectId, x.ProjectName })
+            .Select(g => new { Id = g.Key.RecipientMembershipId, g.Key.ProjectId, g.Key.ProjectName,
+                RecipientName = g.Max(x => x.RecipientName),
+                Total = g.Count(), WithScore = g.Count(x => x.Score.HasValue),
+                Average = g.Average(x => (double?)x.Score) })
+            .ToDictionaryAsync(x => x.Id, cancellationToken);
+
+        var currentMembershipIds = roster.Select(x => x.Id).ToHashSet();
+        var reports = roster.Select(member =>
+        {
+            var totals = totalsByMembership.GetValueOrDefault(member.Id);
+            var ratings = ratingsByMembership.GetValueOrDefault(member.Id);
+            return new DashboardMemberReport(member.ProjectId, member.Id, member.ProjectName,
+                member.FullName, true, totals?.Total ?? 0, totals?.Completed ?? 0,
+                ratings?.Total ?? 0, ratings?.WithScore ?? 0, ratings?.Average);
+        }).Concat(ratingsByMembership.Values.Where(r => !currentMembershipIds.Contains(r.Id))
+            .Select(r => new DashboardMemberReport(r.ProjectId, r.Id, r.ProjectName,
+                r.RecipientName ?? "عضو سابق", false, 0, 0, r.Total, r.WithScore, r.Average)))
+            .OrderBy(r => r.ProjectName).ThenBy(r => r.MemberName).ThenBy(r => r.MembershipId).ToArray();
+
+        var approvals = await (
+            from invite in db.ProjectInvitations.AsNoTracking()
+            join project in selectedProjects on invite.ProjectId equals project.Id
+            join membership in db.ProjectMembers.AsNoTracking()
+                on new { invite.ProjectId, Id = invite.MembershipId } equals new { membership.ProjectId, membership.Id }
+            join member in db.TeamMembers.AsNoTracking() on membership.TeamMemberId equals member.Id
+            where invite.PendingUserId != null && invite.RequestedAtUtc != null && invite.AcceptedAtUtc == null &&
+                invite.RevokedAtUtc == null && membership.AccountUserId == null
+            select new { project.Id, invite.MembershipId, project.Name, member.FullName,
+                invite.NormalizedEmail, invite.ExpiresAtUtc, invite.RequestedAtUtc })
+            .ToListAsync(cancellationToken);
+
+        var pendingApprovals = approvals.Where(x => x.ExpiresAtUtc > now).OrderBy(x => x.RequestedAtUtc)
+            .ThenBy(x => x.MembershipId).Take(PreviewLimit)
+            .Select(x => new DashboardApproval(x.Id, x.MembershipId, x.Name, x.FullName, x.NormalizedEmail)).ToArray();
+
+        var pendingReviews = await (
+            from row in active
+            join completion in db.WorkItemActivities.AsNoTracking() on row.Item.Id equals completion.WorkItemId
+            where row.Item.Status == WorkItemStatus.Done && completion.Kind == WorkItemActivityKind.Completed &&
+                !db.WorkItemActivities.Any(newer => newer.WorkItemId == row.Item.Id &&
+                    newer.Id > completion.Id && newer.Kind == WorkItemActivityKind.Completed) &&
+                !db.WorkItemReviews.Any(review => review.CompletionActivityId == completion.Id) &&
+                (completion.CompletionRecipientCaptured
+                    ? db.ProjectMembers.Any(m => m.ProjectId == row.Item.ProjectId && m.Id == completion.CompletionRecipientMembershipId)
+                    : !db.WorkItemActivities.Any(newer => newer.WorkItemId == row.Item.Id &&
+                        newer.Id > completion.Id && newer.Kind == WorkItemActivityKind.Reassigned) &&
+                      db.ProjectMembers.Any(m => m.ProjectId == row.Item.ProjectId && m.Id == row.Item.AssignedProjectMemberId &&
+                        (completion.ActorUserId == managerUserId || completion.ActorUserId == m.AccountUserId)))
+            orderby completion.Id
+            select new DashboardPendingReview(row.Item.Id, row.Item.Title, row.ProjectName))
+            .Take(PreviewLimit).ToListAsync(cancellationToken);
+
+        return new(today, projectId, projects, progress, counts, deadlines, workload, activity, reports, pendingApprovals, pendingReviews);
     }
 }

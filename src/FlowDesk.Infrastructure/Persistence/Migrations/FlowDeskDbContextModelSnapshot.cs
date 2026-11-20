@@ -70,8 +70,15 @@ namespace FlowDesk.Infrastructure.Persistence.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
 
+                    b.Property<string>("PendingUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
                     b.Property<int>("ProjectId")
                         .HasColumnType("int");
+
+                    b.Property<DateTimeOffset?>("RequestedAtUtc")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<DateTimeOffset?>("RevokedAtUtc")
                         .HasColumnType("datetimeoffset");
@@ -129,6 +136,45 @@ namespace FlowDesk.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("ProjectMembers");
+                });
+
+            modelBuilder.Entity("FlowDesk.Domain.Entities.ProjectMemberComment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AuthorName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("AuthorUserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("ProjectId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SubjectMemberId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProjectId", "SubjectMemberId", "Id");
+
+                    b.ToTable("ProjectMemberComments");
                 });
 
             modelBuilder.Entity("FlowDesk.Domain.Entities.TeamMember", b =>
@@ -228,6 +274,16 @@ namespace FlowDesk.Infrastructure.Persistence.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<bool>("CompletionRecipientCaptured")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("CompletionRecipientMembershipId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CompletionRecipientUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
                     b.Property<int>("Kind")
                         .HasColumnType("int");
 
@@ -246,6 +302,71 @@ namespace FlowDesk.Infrastructure.Persistence.Migrations
                     b.HasIndex("WorkItemId", "Id");
 
                     b.ToTable("WorkItemActivities");
+                });
+
+            modelBuilder.Entity("FlowDesk.Domain.Entities.WorkItemReview", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CompletionActivityId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Feedback")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int>("RecipientMembershipId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("RecipientName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("RecipientUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTimeOffset>("ReviewedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("ReviewerName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("ReviewerUserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<Guid>("Revision")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int?>("Score")
+                        .HasColumnType("int");
+
+                    b.Property<int>("WorkItemId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompletionActivityId")
+                        .IsUnique();
+
+                    b.HasIndex("WorkItemId", "CompletionActivityId");
+
+                    b.ToTable("WorkItemReviews", t =>
+                        {
+                            t.HasCheckConstraint("CK_WorkItemReviews_Content", "[Score] IS NOT NULL OR [Feedback] IS NOT NULL");
+
+                            t.HasCheckConstraint("CK_WorkItemReviews_Score", "[Score] IS NULL OR [Score] BETWEEN 0 AND 10");
+                        });
                 });
 
             modelBuilder.Entity("FlowDesk.Domain.Entities.ProjectInvitation", b =>
@@ -273,6 +394,16 @@ namespace FlowDesk.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("FlowDesk.Domain.Entities.ProjectMemberComment", b =>
+                {
+                    b.HasOne("FlowDesk.Domain.Entities.ProjectMember", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId", "SubjectMemberId")
+                        .HasPrincipalKey("ProjectId", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("FlowDesk.Domain.Entities.WorkItem", b =>
                 {
                     b.HasOne("FlowDesk.Domain.Entities.Project", null)
@@ -297,6 +428,16 @@ namespace FlowDesk.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("WorkItem");
+                });
+
+            modelBuilder.Entity("FlowDesk.Domain.Entities.WorkItemReview", b =>
+                {
+                    b.HasOne("FlowDesk.Domain.Entities.WorkItemActivity", null)
+                        .WithMany()
+                        .HasForeignKey("WorkItemId", "CompletionActivityId")
+                        .HasPrincipalKey("WorkItemId", "Id")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 #pragma warning restore 612, 618
         }

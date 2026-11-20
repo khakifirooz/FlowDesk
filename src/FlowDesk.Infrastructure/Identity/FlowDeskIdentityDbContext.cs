@@ -20,5 +20,7 @@ public class FlowDeskIdentityDbContext
             .Property(user => user.FullName)
             .HasMaxLength(200)
             .IsRequired();
+        builder.Entity<ApplicationUser>().Property(user => user.JobTitle).HasMaxLength(100);
+        builder.Entity<ApplicationUser>().Property(user => user.Bio).HasMaxLength(400);
     }
 }

@@ -9,14 +9,21 @@
     @switch (Model.Outcome.State)
     {
         case InvitationState.Ready:
-            <p>برای پیوستن به پروژهٔ <strong>@Model.Outcome.ProjectName</strong>، دعوت را بپذیرید.</p>
+            <p>برای پیوستن به پروژهٔ <strong>@Model.Outcome.ProjectName</strong>، درخواست را برای مدیر پروژه بفرستید.</p>
             <form asp-action="Accept" method="post" data-prevent-double-submit>
                 <input type="hidden" name="token" value="@Model.Token" />
-                <button type="submit" class="btn btn-primary">پذیرش دعوت</button>
+                <button type="submit" class="btn btn-primary">پذیرش دعوت و ارسال درخواست</button>
             </form>
             break;
+        case InvitationState.PendingApproval:
+            <p class="alert alert-info" role="status">درخواست عضویت در <strong>@Model.Outcome.ProjectName</strong> ثبت شد و در انتظار تأیید مدیر است. پس از تأیید، پروژه در فهرست «پروژه‌های من» ظاهر می‌شود.</p>
+            break;
         case InvitationState.WrongAccount:
-            <p>این دعوت برای ایمیل حساب دیگری است. از این حساب خارج شوید و لینک را با حساب دعوت‌شده باز کنید.</p>
+            <p>این دعوت برای ایمیل حساب دیگری است. با تعویض حساب، همین دعوت دوباره باز می‌شود.</p>
+            <form asp-action="SwitchAccount" method="post" data-prevent-double-submit>
+                <input type="hidden" name="token" value="@Model.Token" />
+                <button type="submit" class="btn btn-primary">ورود با حساب دعوت‌شده</button>
+            </form>
             break;
         case InvitationState.AccountAlreadyInProject:
             <p>این حساب از قبل به عضوی از پروژه متصل است. اگر این اتصال اشتباه است، با مدیر پروژه هماهنگ کنید.</p>

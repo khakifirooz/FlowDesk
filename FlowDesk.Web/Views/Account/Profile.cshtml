@@ -1,0 +1,46 @@
+@model FlowDesk.Web.ViewModels.Account.ProfileViewModel
+@{
+    ViewData["Title"] = "پروفایل";
+}
+<div class="page-head">
+    <div>
+        <h1>پروفایل</h1>
+        <p>نام نمایشی شما روی دیدگاه‌ها و گزارش‌های بعدی ثبت می‌شود. تغییر نام کاربری، ایمیل ورود و دعوت‌نامه‌ها را تغییر نمی‌دهد.</p>
+    </div>
+</div>
+@if (TempData["SuccessMessage"] is string success)
+{
+    <div class="alert alert-success" role="status">@success</div>
+}
+<section class="panel panel-pad form-panel">
+    <p class="mb-3">ایمیل ورود: <bdi>@ViewData["ProfileEmail"]</bdi></p>
+    <form asp-action="Profile" method="post" data-prevent-double-submit>
+        <div asp-validation-summary="All" class="text-danger" role="alert"></div>
+        <div class="row g-3">
+            <div class="col-12 col-sm-6">
+                <label asp-for="FullName" class="form-label"></label>
+                <input asp-for="FullName" class="form-control" maxlength="200" autocomplete="name" />
+                <span asp-validation-for="FullName"></span>
+            </div>
+            <div class="col-12 col-sm-6">
+                <label asp-for="UserName" class="form-label"></label>
+                <input asp-for="UserName" class="form-control" dir="ltr" maxlength="256" autocomplete="username" />
+                <span asp-validation-for="UserName"></span>
+            </div>
+            <div class="col-12">
+                <label asp-for="JobTitle" class="form-label"></label>
+                <input asp-for="JobTitle" class="form-control" maxlength="100" autocomplete="organization-title" />
+                <span asp-validation-for="JobTitle"></span>
+            </div>
+            <div class="col-12">
+                <label asp-for="Bio" class="form-label"></label>
+                <textarea asp-for="Bio" class="form-control" rows="4" maxlength="400"></textarea>
+                <span asp-validation-for="Bio"></span>
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary mt-4">ذخیرهٔ پروفایل</button>
+    </form>
+</section>
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

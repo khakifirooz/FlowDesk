@@ -125,6 +125,10 @@ else if (item.Status == WorkItemStatus.Done)
         <p class="text-break mb-0" style="white-space: pre-wrap;">@(completion?.Message ?? "گزارش متنی ثبت نشده است.")</p>
     </section>
 }
+@if (Model.Review is { } review && (review.CanSave || review.Review is not null || review.UnavailableMessage is not null))
+{
+    <partial name="_Review" model="new WorkItemReviewPanelViewModel(item.Id, Model.BackUrl, review)" />
+}
 <section class="panel panel-pad" aria-labelledby="discussion-title">
     <h2 id="discussion-title">گفت‌وگو و تاریخچه</h2>
     @if (!archived)

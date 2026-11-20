@@ -162,6 +162,104 @@
             </section>
         </div>
 
+        <section class="dash-panel mb-4" aria-labelledby="dashboard-action-queue">
+            <div class="dash-section-heading">
+                <h2 id="dashboard-action-queue">صف اقدام مدیر</h2>
+                <p>درخواست‌های عضویت و تحویل‌های منتظر ارزیابی، از قدیمی‌ترین مورد. در هر بخش حداکثر ۸ مورد نمایش داده می‌شود.</p>
+            </div>
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <h3 class="h6">درخواست‌های عضویت</h3>
+                    @if (Model.PendingApprovals.Count == 0)
+                    {
+                        <p class="dash-empty-note">درخواستی در انتظار تأیید نیست.</p>
+                    }
+                    else
+                    {
+                        <ul class="list-unstyled mb-0">
+                            @foreach (var row in Model.PendingApprovals)
+                            {
+                                <li class="py-2 d-flex flex-wrap align-items-center justify-content-between gap-2">
+                                    <div>
+                                        <strong><bdi>@row.MemberName</bdi></strong>
+                                        <small class="d-block text-muted"><bdi>@row.ProjectName</bdi> · <bdi dir="ltr">@row.Email</bdi></small>
+                                    </div>
+                                    <a asp-controller="ProjectInvitations" asp-action="Create" asp-route-projectId="@row.ProjectId"
+                                       asp-route-membershipId="@row.MembershipId" class="btn btn-sm btn-outline-primary">بررسی عضویت</a>
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
+                <div class="col-md-6">
+                    <h3 class="h6">تحویل‌های منتظر ارزیابی</h3>
+                    @if (Model.PendingReviews.Count == 0)
+                    {
+                        <p class="dash-empty-note">تسکی در انتظار ارزیابی نیست.</p>
+                    }
+                    else
+                    {
+                        <ul class="list-unstyled mb-0">
+                            @foreach (var row in Model.PendingReviews)
+                            {
+                                <li class="py-2 d-flex flex-wrap align-items-center justify-content-between gap-2">
+                                    <div>
+                                        <strong><bdi>@row.Title</bdi></strong>
+                                        <small class="d-block text-muted"><bdi>@row.ProjectName</bdi></small>
+                                    </div>
+                                    <a asp-controller="WorkItems" asp-action="Details" asp-route-id="@row.WorkItemId"
+                                       asp-route-returnUrl="@returnUrl" asp-fragment="task-review"
+                                       class="btn btn-sm btn-outline-primary">ارزیابی تسک</a>
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
+            </div>
+        </section>
+
+        <section class="dash-panel" aria-labelledby="dashboard-member-reports">
+            <div class="dash-section-heading">
+                <h2 id="dashboard-member-reports">گزارش اعضا و میانگین نمره‌ها</h2>
+                <p>برای هر تسک فقط آخرین ارزیابی ثبت‌شده حساب می‌شود. بازخوردهای بدون نمره در میانگین نمی‌آیند.</p>
+            </div>
+            @if (Model.MemberReports.Count == 0)
+            {
+                <p class="dash-empty-note">هنوز عضوی برای نمایش در این گزارش وجود ندارد.</p>
+            }
+            else
+            {
+                <div class="dash-table-wrap" role="region" aria-label="جدول گزارش اعضا" tabindex="0">
+                    <table class="dash-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">عضو / پروژه</th>
+                                <th scope="col">تسک‌های فعلی (انجام‌شده / کل)</th>
+                                <th scope="col">تعداد ارزیابی</th>
+                                <th scope="col">نمره‌های ثبت‌شده</th>
+                                <th scope="col">میانگین از ۱۰</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var row in Model.MemberReports)
+                            {
+                                <tr>
+                                    <th scope="row">
+                                        <bdi>@row.MemberName</bdi>
+                                        <small><bdi>@row.ProjectName</bdi>@(!row.IsCurrentMember ? " · عضو سابق" : "")</small>
+                                    </th>
+                                    <td>@Number(row.Completed) / @Number(row.Assigned)</td>
+                                    <td>@Number(row.ReviewCount)</td>
+                                    <td>@Number(row.ScoreCount)</td>
+                                    <td>@(row.AverageScore is double average ? DecimalNumber(average) : "بدون نمره")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </section>
+
         <section class="dash-panel" aria-labelledby="dashboard-deadlines">
             <div class="dash-section-heading">
                 <h2 id="dashboard-deadlines">مهلت‌های تسک‌ها</h2>

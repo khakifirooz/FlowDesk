@@ -17,6 +17,8 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, HttpCurrentUser>();
 builder.Services.AddScoped<ProjectAccess>();
 builder.Services.AddScoped<ProjectInvitationService>();
+builder.Services.AddScoped<WorkItemReviewService>();
+builder.Services.AddScoped<ProjectMemberDiscussionService>();
 builder.Services.AddScoped<ManagementDashboardService>();
 builder.Services.AddScoped<IManagementDashboardReader, ManagementDashboardReader>();
 builder.Services.AddSingleton(TimeProvider.System);

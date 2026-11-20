@@ -1,9 +1,10 @@
-﻿using FlowDesk.Domain.Common;
+using FlowDesk.Domain.Common;
 using FlowDesk.Infrastructure.Identity;
 using FlowDesk.Web.ViewModels.Account;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
@@ -24,6 +25,12 @@ public class AccountController : Controller
     {
         _userManager = userManager;
         _signInManager = signInManager;
+    }
+
+    public override void OnActionExecuting(ActionExecutingContext context)
+    {
+        Response.Headers["Referrer-Policy"] = "no-referrer";
+        base.OnActionExecuting(context);
     }
 
     [AllowAnonymous]
@@ -145,11 +152,10 @@ public class AccountController : Controller
             return View(model);
         }
 
-        var result = await _signInManager.PasswordSignInAsync(
-            userName: model.Email.Trim(),
-            password: model.Password,
-            isPersistent: model.RememberMe,
-            lockoutOnFailure: true);
+        var account = await _userManager.FindByEmailAsync(model.Email.Trim());
+        var result = account is null
+            ? Microsoft.AspNetCore.Identity.SignInResult.Failed
+            : await _signInManager.PasswordSignInAsync(account, model.Password, model.RememberMe, lockoutOnFailure: true);
 
         if (result.Succeeded)
         {
@@ -163,6 +169,68 @@ public class AccountController : Controller
         ModelState.AddModelError(string.Empty, message);
 
         return View(model);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Profile()
+    {
+        var account = await _userManager.GetUserAsync(User);
+        if (account is null) return Forbid();
+
+        ViewData["ProfileEmail"] = account.Email;
+        return View(new ProfileViewModel
+        {
+            FullName = account.FullName,
+            UserName = account.UserName ?? string.Empty,
+            JobTitle = account.JobTitle,
+            Bio = account.Bio
+        });
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> Profile(ProfileViewModel model)
+    {
+        var account = await _userManager.GetUserAsync(User);
+        if (account is null) return Forbid();
+        ViewData["ProfileEmail"] = account.Email;
+
+        string fullName = TextRules.Normalize(model.FullName);
+        string userName = model.UserName?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(fullName))
+            ModelState.AddModelError(nameof(model.FullName), "نام نمایشی را وارد کنید.");
+
+        if (!ModelState.IsValid) return View(model);
+
+        account.FullName = fullName;
+        account.UserName = userName;
+        account.JobTitle = string.IsNullOrWhiteSpace(model.JobTitle) ? null : model.JobTitle.Trim();
+        account.Bio = string.IsNullOrWhiteSpace(model.Bio) ? null : model.Bio.Trim();
+
+        IdentityResult result;
+        try { result = await _userManager.UpdateAsync(account); }
+        catch (DbUpdateException exception) when (exception.InnerException is SqlException sql &&
+            sql.Number is 2601 or 2627)
+        {
+            ModelState.AddModelError(nameof(model.UserName), "این نام کاربری قبلاً گرفته شده است.");
+            return View(model);
+        }
+
+        if (!result.Succeeded)
+        {
+            foreach (var error in result.Errors)
+                ModelState.AddModelError(string.Empty, error.Code switch
+                {
+                    "DuplicateUserName" => "این نام کاربری قبلاً گرفته شده است.",
+                    "InvalidUserName" => "نام کاربری معتبر نیست.",
+                    "ConcurrencyFailure" => "پروفایل هم‌زمان تغییر کرده است. صفحه را دوباره باز کنید.",
+                    _ => TranslateError(error)
+                });
+            return View(model);
+        }
+
+        await _signInManager.RefreshSignInAsync(account);
+        TempData["SuccessMessage"] = "پروفایل ذخیره شد.";
+        return RedirectToAction(nameof(Profile));
     }
 
     [HttpPost]

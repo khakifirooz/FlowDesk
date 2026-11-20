@@ -2,6 +2,7 @@ using System.Security.Claims;
 using FlowDesk.Application.Common;
 using FlowDesk.Application.Contracts.Services;
 using FlowDesk.Application.DTOs.WorkItems;
+using FlowDesk.Application.Services;
 using FlowDesk.Domain.Enums;
 using FlowDesk.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
@@ -20,16 +21,18 @@ public class WorkItemsController : Controller
     private readonly IProjectMemberService _members;
     private readonly UserManager<ApplicationUser> _accounts;
     private readonly TimeProvider _clock;
+    private readonly WorkItemReviewService _reviews;
     private string? UserId => User.FindFirstValue(ClaimTypes.NameIdentifier);
 
     public WorkItemsController(IWorkItemService items, IProjectService projects,
-        IProjectMemberService members, UserManager<ApplicationUser> accounts, TimeProvider clock)
+        IProjectMemberService members, UserManager<ApplicationUser> accounts, TimeProvider clock, WorkItemReviewService reviews)
     {
         _items = items;
         _projects = projects;
         _members = members;
         _accounts = accounts;
         _clock = clock;
+        _reviews = reviews;
     }
 
     [HttpGet]
@@ -73,6 +76,7 @@ public class WorkItemsController : Controller
         model.TotalCount = result.TotalCount;
         model.HasLinkedMembership = result.HasLinkedMembership;
         model.PersonalCountWithoutFilters = result.PersonalCountWithoutFilters;
+        model.ArchiveCountBeforeFilters = result.ArchiveCountBeforeFilters;
         model.PageSize = result.PageSize;
         model.PageNumber = result.PageNumber;
         var projectNames = projects.ToDictionary(x => x.Id, x => x.Name);
@@ -285,7 +289,30 @@ public class WorkItemsController : Controller
             if (names.TryGetValue(membershipId, out var name)) assignee = name;
         }
         return View(new WorkItemDetailsViewModel(details, project?.Name ?? "—", assignee,
-            SafeReturnUrl(returnUrl), FlowDeskCalendar.Today(_clock)));
+            SafeReturnUrl(returnUrl), FlowDeskCalendar.Today(_clock), await _reviews.GetAsync(id)));
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> SaveReview([FromForm] int id, [FromForm] int submissionId, [FromForm] int? score,
+        [FromForm] string? feedback, [FromForm] Guid? revision, [FromForm] string? returnUrl)
+    {
+        if (!ModelState.IsValid || id <= 0 || submissionId <= 0) return BadRequest();
+        var authorName = await GetAuthorNameAsync();
+        if (authorName is null) return Forbid();
+
+        try
+        {
+            await _reviews.SaveAsync(id, new(submissionId, score, feedback, revision), authorName);
+            TempData["SuccessMessage"] = "ارزیابی تسک ثبت شد.";
+        }
+        catch (KeyNotFoundException) { return NotFound(); }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
+        {
+            TempData["ErrorMessage"] = ex.Message;
+        }
+
+        return RedirectToAction(nameof(Details), controllerName: null,
+            routeValues: new { id, returnUrl = SafeReturnUrl(returnUrl) }, fragment: "task-review");
     }
 
     [HttpPost, ValidateAntiForgeryToken]

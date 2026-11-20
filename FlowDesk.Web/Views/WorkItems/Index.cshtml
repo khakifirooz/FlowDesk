@@ -12,6 +12,11 @@
     archiveRoute.Remove(nameof(Model.Focus));
     if (Model.Archived) archiveRoute.Remove(nameof(Model.Archived));
     else archiveRoute[nameof(Model.Archived)] = "true";
+    var projectOnlyRoute = new Dictionary<string, string>(filterRoute);
+    if (pagingRoute.TryGetValue(nameof(Model.ProjectId), out string? projectValue))
+        projectOnlyRoute[nameof(Model.ProjectId)] = projectValue;
+    var activeProjectRoute = new Dictionary<string, string>(projectOnlyRoute);
+    activeProjectRoute.Remove(nameof(Model.Archived));
     string? archived = Model.Archived ? "true" : null;
     var scopeNav = new (string Text, bool Active, string? OnlyMine, string? ManagedOnly)[]
     {
@@ -73,7 +78,13 @@
         </div>
         <div class="col-md-3">
             <label asp-for="ProjectId" class="form-label">پروژه</label>
-            <select asp-for="ProjectId" asp-items="Model.Projects" class="form-select"><option value="">همهٔ پروژه‌های این فهرست</option></select>
+            <select id="ProjectId" name="ProjectId" class="form-select">
+                <option value="" selected="@(projectValue is null)">همهٔ پروژه‌های این فهرست</option>
+                @foreach (var project in Model.Projects)
+                {
+                    <option value="@project.Value" selected="@(project.Value == projectValue)">@project.Text</option>
+                }
+            </select>
         </div>
         <div class="col-md-3">
             <label asp-for="Status" class="form-label">وضعیت</label>
@@ -132,6 +143,18 @@
                 {
                     <a asp-controller="Projects" asp-action="Index">مدیریت اعضا از فهرست پروژه‌ها</a>
                 }
+            }
+            else if (Model.Archived && Model.ArchiveCountBeforeFilters == 0)
+            {
+                <h2>@(Model.ProjectId.HasValue ? "این پروژه در این فهرست تسک بایگانی‌شده ندارد" : "هنوز تسکی در این بایگانی نیست")</h2>
+                <p>تسک انجام‌شده تا زمانی که بایگانی نشود، در فهرست تسک‌های فعال می‌ماند.</p>
+                <a asp-action="Index" asp-all-route-data="@activeProjectRoute">دیدن تسک‌های فعال</a>
+            }
+            else if (Model.Archived && Model.ArchiveCountBeforeFilters > 0)
+            {
+                <h2>تسک بایگانی‌شده‌ای مطابق این فیلترها پیدا نشد</h2>
+                <p>@Number(Model.ArchiveCountBeforeFilters.Value) تسک بایگانی‌شده بدون فیلتر عنوان، وضعیت و اولویت وجود دارد.</p>
+                <a asp-action="Index" asp-all-route-data="@projectOnlyRoute">دیدن تسک‌های بایگانی‌شده</a>
             }
             else if (Model.HasFilters)
             {

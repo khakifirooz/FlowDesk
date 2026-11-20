@@ -20,6 +20,8 @@ public sealed class ProjectInvitation : BaseEntity
     public string NormalizedEmail { get; private set; } = string.Empty;
     public string TokenHash { get; private set; } = string.Empty;
     public DateTimeOffset ExpiresAtUtc { get; private set; }
+    public string? PendingUserId { get; private set; }
+    public DateTimeOffset? RequestedAtUtc { get; private set; }
     public DateTimeOffset? AcceptedAtUtc { get; private set; }
     public DateTimeOffset? RevokedAtUtc { get; private set; }
     public Guid Version { get; private set; }
@@ -33,18 +35,35 @@ public sealed class ProjectInvitation : BaseEntity
         ArgumentException.ThrowIfNullOrWhiteSpace(tokenHash);
         NormalizedEmail = normalizedEmail;
         TokenHash = tokenHash;
+        PendingUserId = null;
+        RequestedAtUtc = null;
         ExpiresAtUtc = expiresAt;
         AcceptedAtUtc = null;
         RevokedAtUtc = null;
         Version = Guid.NewGuid();
     }
 
-    public void Accept(DateTimeOffset now)
+    public bool IsPendingApproval(DateTimeOffset now) =>
+        IsAvailable(now) && PendingUserId is not null && RequestedAtUtc is not null;
+
+    public void RequestMembership(string userId, DateTimeOffset now)
     {
-        if (!IsAvailable(now))
-            throw new InvalidOperationException("این دعوت دیگر قابل استفاده نیست.");
+        ArgumentException.ThrowIfNullOrWhiteSpace(userId);
+        if (userId.Length > 450 || !IsAvailable(now) || PendingUserId is not null)
+            throw new InvalidOperationException("امکان ثبت درخواست برای این دعوت وجود ندارد.");
+
+        PendingUserId = userId;
+        RequestedAtUtc = now;
+        Version = Guid.NewGuid();
+    }
+
+    public void Approve(string userId, DateTimeOffset now)
+    {
+        if (!IsPendingApproval(now) || !string.Equals(PendingUserId, userId, StringComparison.Ordinal))
+            throw new InvalidOperationException("این درخواست دیگر قابل تأیید نیست.");
 
         AcceptedAtUtc = now;
+        PendingUserId = null;
         Version = Guid.NewGuid();
     }
 
@@ -52,6 +71,7 @@ public sealed class ProjectInvitation : BaseEntity
     {
         if (!IsAvailable(now)) return;
         RevokedAtUtc = now;
+        PendingUserId = null;
         Version = Guid.NewGuid();
     }
 }

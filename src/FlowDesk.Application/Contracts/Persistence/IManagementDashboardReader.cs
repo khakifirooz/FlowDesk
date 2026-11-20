@@ -6,5 +6,5 @@ public interface IManagementDashboardReader
 {
     // Returns null for a requested project outside the manager's scope.
     Task<ManagementDashboardDto?> ReadAsync(
-        string managerUserId, int? projectId, DateOnly today, CancellationToken cancellationToken);
+        string managerUserId, int? projectId, DateOnly today, DateTimeOffset now, CancellationToken cancellationToken);
 }

@@ -15,7 +15,7 @@ public sealed record AcceptInvitationModel(string? Token, InvitationOutcome Outc
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public sealed class ProjectInvitationsController(
     ProjectInvitationService invitations,
-    UserManager<ApplicationUser> accounts) : Controller
+    UserManager<ApplicationUser> accounts, SignInManager<ApplicationUser> signIn) : Controller
 {
     public override void OnActionExecuting(ActionExecutingContext context)
     {
@@ -50,7 +50,7 @@ public sealed class ProjectInvitationsController(
         {
             var issued = await invitations.IssueAsync(projectId, membershipId, accounts.NormalizeEmail(email)!);
             var link = Url.Action(nameof(Accept), "ProjectInvitations", new { token = issued.Token }, Request.Scheme);
-            return View(new ManageInvitationModel(target with { HasActiveInvite = true }, email, link));
+            return View(new ManageInvitationModel(target with { HasActiveInvite = true, InvitedEmail = email, Version = issued.Version }, email, link));
         }
         catch (KeyNotFoundException) { return NotFound(); }
         catch (InvalidOperationException ex)
@@ -61,12 +61,13 @@ public sealed class ProjectInvitationsController(
     }
 
     [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> Revoke([FromForm] int projectId, [FromForm] int membershipId)
+    public async Task<IActionResult> Revoke([FromForm] int projectId, [FromForm] int membershipId, [FromForm] Guid version)
     {
-        if (!ModelState.IsValid || projectId <= 0 || membershipId <= 0) return BadRequest();
+        if (!ModelState.IsValid || projectId <= 0 || membershipId <= 0 || version == Guid.Empty)
+            return BadRequest();
         try
         {
-            await invitations.RevokeAsync(projectId, membershipId);
+            await invitations.RevokeAsync(projectId, membershipId, version);
             TempData["SuccessMessage"] = "لینک دعوت غیرفعال شد.";
         }
         catch (KeyNotFoundException) { return NotFound(); }
@@ -74,11 +75,55 @@ public sealed class ProjectInvitationsController(
         return RedirectToAction(nameof(Create), new { projectId, membershipId });
     }
 
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> Approve([FromForm] int projectId, [FromForm] int membershipId, [FromForm] Guid version)
+    {
+        if (!ModelState.IsValid || projectId <= 0 || membershipId <= 0 || version == Guid.Empty)
+            return BadRequest();
+
+        try
+        {
+            var target = await invitations.GetTargetAsync(projectId, membershipId);
+            if (target is null) return NotFound();
+            var account = target.PendingUserId is string pendingUserId
+                ? await accounts.FindByIdAsync(pendingUserId) : null;
+            if (account is null)
+                throw new InvalidOperationException("درخواست فعالی برای تأیید پیدا نشد.");
+
+            await invitations.ApproveAsync(projectId, membershipId, account.Id, accounts.NormalizeEmail(account.Email), version);
+            TempData["SuccessMessage"] = "درخواست تأیید شد و عضو به پروژه دسترسی پیدا کرد.";
+            return RedirectToAction("Index", "ProjectMembers", new { projectId });
+        }
+        catch (KeyNotFoundException) { return NotFound(); }
+        catch (InvalidOperationException ex)
+        {
+            TempData["ErrorMessage"] = ex.Message;
+            return RedirectToAction(nameof(Create), new { projectId, membershipId });
+        }
+    }
+
     [HttpGet]
     public Task<IActionResult> Accept(string? token) => OpenAsync(token, accept: false);
 
     [HttpPost, ValidateAntiForgeryToken, ActionName(nameof(Accept))]
     public Task<IActionResult> AcceptPost([FromForm] string? token) => OpenAsync(token, accept: true);
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> SwitchAccount([FromForm] string? token)
+    {
+        if (!ModelState.IsValid || token is null || token.Length != 64 || !token.All(Uri.IsHexDigit))
+            return BadRequest();
+
+        var account = await accounts.GetUserAsync(User);
+        if (account is null) return Forbid();
+        var outcome = await invitations.OpenAsync(token, account.Id, accounts.NormalizeEmail(account.Email));
+        if (outcome.State != InvitationState.WrongAccount)
+            return RedirectToAction(nameof(Accept), new { token });
+
+        var returnUrl = Url.Action(nameof(Accept), "ProjectInvitations", new { token });
+        await signIn.SignOutAsync();
+        return RedirectToAction("Login", "Account", new { returnUrl });
+    }
 
     private async Task<IActionResult> OpenAsync(string? token, bool accept)
     {
@@ -88,11 +133,9 @@ public sealed class ProjectInvitationsController(
         try
         {
             var outcome = await invitations.OpenAsync(token, account.Id, accounts.NormalizeEmail(account.Email), accept);
-            if (outcome.State == InvitationState.Accepted)
-            {
-                TempData["SuccessMessage"] = "دعوت پذیرفته شد و به پروژه اضافه شدید.";
-                return RedirectToAction("Index", "ProjectMembers", new { projectId = outcome.ProjectId });
-            }
+            if (accept && outcome.State == InvitationState.PendingApproval)
+                return RedirectToAction(nameof(Accept), new { token });
+
             return View(nameof(Accept), new AcceptInvitationModel(token, outcome));
         }
         catch (InvalidOperationException ex)

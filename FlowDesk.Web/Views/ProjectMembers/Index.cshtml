@@ -13,7 +13,7 @@
     <div>
         <span class="eyebrow">پروژه / اعضا</span>
         <h1 class="text-break">@Model.ProjectName</h1>
-        <p>افراد عضو این پروژه را ببینید.</p>
+        <p>فهرست اعضا و گفت‌وگوهای این پروژه را ببینید.</p>
     </div>
 
     <div class="d-flex flex-wrap gap-2">
@@ -47,7 +47,7 @@
 @if (!Model.CanManageMembers)
 {
     <p class="alert alert-info">
-        مدیریت اعضا و اتصال حساب فقط برای مدیر این پروژه مجاز است.
+        می‌توانید اعضا را ببینید و برای آن‌ها دیدگاه بگذارید. مدیریت عضویت فقط در اختیار مدیر پروژه است.
     </p>
 }
 
@@ -58,7 +58,7 @@
             <section class="panel panel-pad">
                 <h2 class="mb-3">افزودن عضو به پروژه</h2>
                 <p class="form-text">
-                    بعد از افزودن فرد، می‌توانید حساب ثبت‌نام‌شدهٔ او را از فهرست تیم وصل کنید.
+                    پس از افزودن فرد، برای ایمیل او لینک دعوت بسازید. دسترسی پس از تأیید شما برقرار می‌شود.
                 </p>
 
                 @if (Model.AvailableMembers.Count > 0)
@@ -114,8 +114,10 @@
                         <thead>
                             <tr>
                                 <th scope="col">نام عضو</th>
+                                <th scope="col">گفت‌وگو</th>
                                 @if (Model.CanManageMembers)
                                 {
+                                    <th scope="col">ایمیل</th>
                                     <th scope="col">حساب ورود</th>
                                     <th scope="col">عملیات</th>
                                 }
@@ -126,10 +128,31 @@
                             @foreach (var member in Model.Members)
                             {
                                 <tr>
-                                    <td class="item-title">@member.FullName</td>
+                                    <td class="item-title"><bdi>@member.FullName</bdi></td>
+                                    <td>
+                                        <a asp-controller="ProjectMemberDiscussion" asp-action="Index"
+                                           asp-route-projectId="@Model.ProjectId" asp-route-membershipId="@member.Id"
+                                           class="btn btn-sm btn-outline-secondary" aria-label="دیدگاه‌ها دربارهٔ @member.FullName">دیدگاه‌ها</a>
+                                    </td>
 
                                     @if (Model.CanManageMembers)
                                     {
+                                        var invitation = Model.InvitationStatus.GetValueOrDefault(member.Id);
+                                        <td class="text-break">
+                                            @if (Model.MemberEmails.TryGetValue(member.Id, out var accountEmail))
+                                            {
+                                                <bdi dir="ltr">@accountEmail</bdi>
+                                            }
+                                            else if (!member.HasLinkedAccount && invitation is not null)
+                                            {
+                                                <bdi dir="ltr">@invitation.InvitedEmail</bdi>
+                                                <small class="d-block text-muted">@(invitation.IsPending ? "منتظر تأیید شما" : "منتظر پذیرش دعوت")</small>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">ثبت نشده</span>
+                                            }
+                                        </td>
                                         <td>
                                             @if (member.HasLinkedAccount)
                                             {
@@ -169,33 +192,8 @@
                                                 {
                                                     <a asp-controller="ProjectInvitations" asp-action="Create"
                                                        asp-route-projectId="@Model.ProjectId" asp-route-membershipId="@member.Id"
-                                                       class="btn btn-sm btn-outline-secondary mb-2">لینک دعوت</a>
+                                                       class="btn btn-sm btn-outline-secondary mb-2">@(invitation?.IsPending == true ? "بررسی درخواست" : "لینک دعوت")</a>
                                                 }
-                                                <details>
-                                                    <summary>اتصال دستی حساب</summary>
-
-                                                    <form asp-action="LinkAccount" method="post"
-                                                          class="mt-2" data-prevent-double-submit>
-                                                        <input type="hidden" name="projectId"
-                                                               value="@Model.ProjectId" />
-                                                        <input type="hidden" name="membershipId"
-                                                               value="@member.Id" />
-
-                                                        <div class="d-flex flex-wrap gap-2">
-                                                            <input type="email" name="email"
-                                                                   maxlength="256" dir="ltr"
-                                                                   placeholder="name@example.com"
-                                                                   aria-label="ایمیل حساب عضو"
-                                                                   class="form-control form-control-sm"
-                                                                   required />
-
-                                                            <button type="submit"
-                                                                    class="btn btn-sm btn-outline-primary">
-                                                                ثبت اتصال
-                                                            </button>
-                                                        </div>
-                                                    </form>
-                                                </details>
                                             }
                                         </td>
 

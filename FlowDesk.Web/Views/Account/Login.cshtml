@@ -2,6 +2,9 @@
 
 @{
     ViewData["Title"] = "ورود";
+    var acceptPath = Url.Action("Accept", "ProjectInvitations");
+    bool fromInvitation = acceptPath is not null && Url.IsLocalUrl(Model.ReturnUrl) &&
+        Model.ReturnUrl!.StartsWith(acceptPath + "?", StringComparison.OrdinalIgnoreCase);
 }
 
 @section Styles {
@@ -14,6 +17,11 @@
             <h1 id="account-form-title">ورود</h1>
             <p>برای دیدن پروژه‌ها و تسک‌های خود، با ایمیل و رمز عبور وارد شوید.</p>
         </header>
+
+        @if (fromInvitation)
+        {
+            <p class="alert alert-info mb-3">با همان ایمیلی وارد شوید که مدیر پروژه برای دعوت وارد کرده است. بعد از ورود، صفحهٔ پذیرش دعوت باز می‌شود.</p>
+        }
 
         <form asp-controller="Account"
               asp-action="Login"

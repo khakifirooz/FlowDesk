@@ -14,7 +14,7 @@
     bool dashboardActive = currentController == "Dashboard";
 
     bool projectsActive =
-        currentController is "Projects" or "ProjectMembers";
+        currentController is "Projects" or "ProjectMembers" or "ProjectMemberDiscussion";
 
     bool tasksActive = currentController == "WorkItems";
 
@@ -99,10 +99,11 @@
                             }
                         </div>
                         <div class="rail-account">
-                            <div class="rail-account-name">
+                            <a class="rail-account-name" asp-controller="Account" asp-action="Profile" title="ویرایش پروفایل">
                                 <span class="rail-account-icon"><partial name="_FlowIcon" model='"team"' /></span>
                                 <bdi>@displayName</bdi>
-                            </div>
+                                <span class="visually-hidden"> · ویرایش پروفایل</span>
+                            </a>
                             <form asp-controller="Account" asp-action="Logout" method="post" class="m-0" data-prevent-double-submit>
                                 <button type="submit" class="btn btn-outline-secondary btn-sm rail-signout" aria-label="خروج از حساب" title="خروج از حساب">
                                     <partial name="_FlowIcon" model='"logout"' />

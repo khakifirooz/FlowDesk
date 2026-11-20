@@ -2,6 +2,9 @@
 
 @{
     ViewData["Title"] = "ساخت حساب";
+    var acceptPath = Url.Action("Accept", "ProjectInvitations");
+    bool fromInvitation = acceptPath is not null && Url.IsLocalUrl(Model.ReturnUrl) &&
+        Model.ReturnUrl!.StartsWith(acceptPath + "?", StringComparison.OrdinalIgnoreCase);
 }
 
 @section Styles {
@@ -14,6 +17,11 @@
             <h1 id="account-form-title">ساخت حساب کاربری</h1>
             <p>حساب بسازید تا پروژهٔ خود را شروع کنید یا دعوت تیم را بپذیرید.</p>
         </header>
+
+        @if (fromInvitation)
+        {
+            <p class="alert alert-info mb-3">با ایمیل دعوت‌شده حساب بسازید. بعد از ثبت‌نام، مستقیم به صفحهٔ پذیرش دعوت می‌روید.</p>
+        }
 
         <form asp-controller="Account"
               asp-action="Register"

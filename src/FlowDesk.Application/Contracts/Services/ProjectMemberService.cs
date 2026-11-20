@@ -38,7 +38,8 @@ public class ProjectMemberService : IProjectMemberService
     public async Task<List<ProjectMemberListItemDto>> GetByProjectIdAsync(
         int projectId)
     {
-        (await _access.GetScopeAsync()).RequireView(projectId);
+        var scope = await _access.GetViewScopeAsync();
+        scope.RequireView(projectId);
         var memberships = await _projectMemberRepository.FindAsync(
             membership => membership.ProjectId == projectId);
 
@@ -65,7 +66,8 @@ public class ProjectMemberService : IProjectMemberService
                 Id = membership.Id,
                 TeamMemberId = membership.TeamMemberId,
                 FullName = namesById[membership.TeamMemberId],
-                HasLinkedAccount = membership.AccountUserId is not null
+                HasLinkedAccount = membership.AccountUserId is not null,
+                LinkedAccountUserId = scope.CanManage(projectId) ? membership.AccountUserId : null
             })
             .OrderBy(member => member.FullName)
             .ThenBy(member => member.Id)

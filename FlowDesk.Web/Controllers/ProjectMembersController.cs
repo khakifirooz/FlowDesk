@@ -1,4 +1,3 @@
-using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using FlowDesk.Application.Common;
 using FlowDesk.Application.Contracts.Services;
@@ -9,6 +8,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.EntityFrameworkCore;
 
 namespace FlowDesk.Web.Controllers;
 
@@ -20,19 +20,22 @@ public class ProjectMembersController : Controller
     private readonly IProjectMemberService _projectMemberService;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ProjectAccess _access;
+    private readonly ProjectInvitationService _invitations;
 
     public ProjectMembersController(
         IProjectService projectService,
         ITeamMemberService teamMemberService,
         IProjectMemberService projectMemberService,
         UserManager<ApplicationUser> userManager,
-        ProjectAccess access)
+        ProjectAccess access,
+        ProjectInvitationService invitations)
     {
         _projectService = projectService;
         _teamMemberService = teamMemberService;
         _projectMemberService = projectMemberService;
         _userManager = userManager;
         _access = access;
+        _invitations = invitations;
     }
 
     [HttpGet]
@@ -117,23 +120,21 @@ public class ProjectMembersController : Controller
         return RedirectToAction(nameof(Index), new { projectId = project.Id });
     }
 
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public Task<IActionResult> LinkAccount(
-        [FromForm] int projectId,
-        [FromForm] int membershipId,
-        [FromForm] string? email)
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> UnlinkAccount([FromForm] int projectId, [FromForm] int membershipId)
     {
-        return ChangeAccountAsync(projectId, membershipId, email, unlink: false);
-    }
+        if (!ModelState.IsValid || projectId <= 0 || membershipId <= 0)
+            return BadRequest();
 
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public Task<IActionResult> UnlinkAccount(
-        [FromForm] int projectId,
-        [FromForm] int membershipId)
-    {
-        return ChangeAccountAsync(projectId, membershipId, email: null, unlink: true);
+        (await _access.GetScopeAsync()).RequireManager(projectId);
+        try
+        {
+            await _projectMemberService.SetAccountAsync(projectId, membershipId, accountUserId: null);
+            TempData["SuccessMessage"] = "اتصال حساب از این عضویت برداشته شد.";
+        }
+        catch (KeyNotFoundException) { return NotFound(); }
+        catch (InvalidOperationException ex) { TempData["ErrorMessage"] = ex.Message; }
+        return RedirectToAction(nameof(Index), new { projectId });
     }
 
     [HttpPost, ValidateAntiForgeryToken]
@@ -152,70 +153,6 @@ public class ProjectMembersController : Controller
         }
         catch (KeyNotFoundException) { return NotFound(); }
         catch (InvalidOperationException ex) { TempData["ErrorMessage"] = ex.Message; }
-
-        return RedirectToAction(nameof(Index), new { projectId });
-    }
-
-    private async Task<IActionResult> ChangeAccountAsync(
-        int projectId,
-        int membershipId,
-        string? email,
-        bool unlink)
-    {
-        if (!ModelState.IsValid || projectId <= 0 || membershipId <= 0)
-            return BadRequest();
-
-        var project = await _projectService.GetByIdAsync(projectId);
-
-        if (project is null)
-            return NotFound();
-
-        if (!CanManage(project))
-            return Forbid();
-
-        string? accountUserId = null;
-
-        if (!unlink)
-        {
-            email = email?.Trim();
-
-            if (string.IsNullOrWhiteSpace(email) || email.Length > 256 ||
-                !new EmailAddressAttribute().IsValid(email))
-            {
-                TempData["ErrorMessage"] = "یک ایمیل معتبر وارد کنید.";
-                return RedirectToAction(nameof(Index), new { projectId });
-            }
-
-            var account = await _userManager.FindByEmailAsync(email);
-
-            if (account is null)
-            {
-                TempData["ErrorMessage"] = "با این ایمیل حسابی ثبت نشده است.";
-                return RedirectToAction(nameof(Index), new { projectId });
-            }
-
-            accountUserId = account.Id;
-        }
-
-        try
-        {
-            await _projectMemberService.SetAccountAsync(
-                project.Id,
-                membershipId,
-                accountUserId);
-
-            TempData["SuccessMessage"] = unlink
-                ? "اتصال حساب از این عضویت برداشته شد."
-                : "حساب به این عضو پروژه متصل شد.";
-        }
-        catch (KeyNotFoundException)
-        {
-            return NotFound();
-        }
-        catch (InvalidOperationException exception)
-        {
-            TempData["ErrorMessage"] = exception.Message;
-        }
 
         return RedirectToAction(nameof(Index), new { projectId });
     }
@@ -249,6 +186,20 @@ public class ProjectMembersController : Controller
         {
             var scope = await _access.GetScopeAsync();
             model.OwnMembershipIds = scope.OwnMembershipIds.ToHashSet();
+            var accountIds = memberships.Select(x => x.LinkedAccountUserId).OfType<string>().Distinct().ToList();
+            if (accountIds.Count > 0)
+            {
+                var emails = await _userManager.Users.AsNoTracking()
+                    .Where(account => accountIds.Contains(account.Id))
+                    .ToDictionaryAsync(account => account.Id, account => account.Email);
+                foreach (var membership in memberships)
+                {
+                    if (membership.LinkedAccountUserId is string uid &&
+                        emails.TryGetValue(uid, out var email) && !string.IsNullOrWhiteSpace(email))
+                        model.MemberEmails[membership.Id] = email;
+                }
+            }
+            model.InvitationStatus = (await _invitations.GetManagerInvitesAsync(project.Id)).ToDictionary(x => x.MembershipId);
             var existingIds = memberships.Select(x => x.TeamMemberId).ToHashSet();
             var allMembers = await _teamMemberService.GetAllAsync();
 

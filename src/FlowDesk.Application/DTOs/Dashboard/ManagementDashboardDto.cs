@@ -27,6 +27,12 @@ public sealed record DashboardActivity(
     int WorkItemId, string Title, string ProjectName,
     WorkItemActivityKind Kind, DateTimeOffset OccurredAtUtc);
 
+public sealed record DashboardMemberReport(int ProjectId, int MembershipId, string ProjectName,
+    string MemberName, bool IsCurrentMember, int Assigned, int Completed, int ReviewCount, int ScoreCount, double? AverageScore);
+
+public sealed record DashboardApproval(int ProjectId, int MembershipId, string ProjectName, string MemberName, string Email);
+public sealed record DashboardPendingReview(int WorkItemId, string Title, string ProjectName);
+
 public sealed record ManagementDashboardDto(
     DateOnly Today,
     int? SelectedProjectId,
@@ -35,4 +41,7 @@ public sealed record ManagementDashboardDto(
     DashboardCounts Counts,
     IReadOnlyList<DashboardDeadline> Deadlines,
     IReadOnlyList<DashboardWorkload> Workload,
-    IReadOnlyList<DashboardActivity> Activity);
+    IReadOnlyList<DashboardActivity> Activity,
+    IReadOnlyList<DashboardMemberReport> MemberReports,
+    IReadOnlyList<DashboardApproval> PendingApprovals,
+    IReadOnlyList<DashboardPendingReview> PendingReviews);

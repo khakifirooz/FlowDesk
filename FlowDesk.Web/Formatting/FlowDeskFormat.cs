@@ -7,6 +7,9 @@ public static class FlowDeskFormat
 {
     public static string Number(int number) => PersianDigits(number.ToString(CultureInfo.InvariantCulture));
 
+    public static string DecimalNumber(double number) =>
+        PersianDigits(number.ToString("0.##", CultureInfo.InvariantCulture).Replace('.', '٫'));
+
     public static string IsoDate(DateOnly date) => date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
 
     public static string PersianDate(DateOnly date)

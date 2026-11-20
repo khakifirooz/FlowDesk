@@ -39,6 +39,18 @@ public sealed class WorkItemActivity : BaseEntity
         }
     }
 
+    public void CaptureCompletionRecipient(ProjectMember? member)
+    {
+        if (Kind != WorkItemActivityKind.Completed)
+            throw new InvalidOperationException("مسئول تحویل فقط برای تکمیل تسک ثبت می‌شود.");
+        CompletionRecipientCaptured = true;
+        CompletionRecipientMembershipId = member?.Id;
+        CompletionRecipientUserId = member?.AccountUserId;
+    }
+
+    public bool CompletionRecipientCaptured { get; private set; }
+    public int? CompletionRecipientMembershipId { get; private set; }
+    public string? CompletionRecipientUserId { get; private set; }
     public int WorkItemId { get; private set; }
     public WorkItem WorkItem { get; private set; } = null!;
     public WorkItemActivityKind Kind { get; private set; }
