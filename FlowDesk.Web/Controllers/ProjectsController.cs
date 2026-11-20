@@ -1,4 +1,4 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
 using FlowDesk.Application.Contracts.Services;
 using FlowDesk.Application.DTOs.Projects;
 using FlowDesk.Web.ViewModels.Projects;
@@ -26,6 +26,7 @@ public class ProjectsController : Controller
             .OrderByDescending(project => project.Id)
             .Select(project => new ProjectListItemViewModel
             {
+                CanManage = project.ManagerUserId == User.FindFirstValue(ClaimTypes.NameIdentifier),
                 Id = project.Id,
                 Name = project.Name
             })
@@ -42,15 +43,19 @@ public class ProjectsController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(CreateProjectViewModel model)
+    public async Task<IActionResult> Create(
+        CreateProjectViewModel model)
     {
         if (!ModelState.IsValid)
+        {
             return View(model);
+        }
 
         string? userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-
         if (string.IsNullOrWhiteSpace(userId))
+        {
             return Forbid();
+        }
 
         try
         {
@@ -70,7 +75,10 @@ public class ProjectsController : Controller
         catch (Exception exception) when (
             exception is ArgumentException or InvalidOperationException)
         {
-            ModelState.AddModelError(nameof(model.Name), exception.Message);
+            ModelState.AddModelError(
+                nameof(model.Name),
+                exception.Message);
+
             return View(model);
         }
     }
@@ -79,35 +87,53 @@ public class ProjectsController : Controller
     public async Task<IActionResult> Edit(int id)
     {
         if (!ModelState.IsValid || id <= 0)
+        {
             return BadRequest("شناسهٔ پروژه معتبر نیست.");
+        }
 
         var project = await _projectService.GetByIdAsync(id);
 
         if (project is null)
+        {
             return NotFound("پروژه پیدا نشد.");
+        }
 
-        return View(new EditProjectViewModel
+        if (project.ManagerUserId != User.FindFirstValue(ClaimTypes.NameIdentifier))
+            return Forbid();
+
+        var model = new EditProjectViewModel
         {
             Id = project.Id,
             Name = project.Name
-        });
+        };
+
+        return View(model);
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int id, EditProjectViewModel model)
+    public async Task<IActionResult> Edit(
+        int id,
+        EditProjectViewModel model)
     {
         if (id <= 0 || id != model.Id)
+        {
             return BadRequest("شناسهٔ پروژه معتبر نیست.");
+        }
 
         if (!ModelState.IsValid)
+        {
             return View(model);
+        }
 
         try
         {
-            await _projectService.RenameAsync(id, model.Name);
+            await _projectService.RenameAsync(
+                id,
+                model.Name);
 
             TempData["SuccessMessage"] = "نام پروژه ویرایش شد.";
+
             return RedirectToAction(nameof(Index));
         }
         catch (KeyNotFoundException)
@@ -117,7 +143,10 @@ public class ProjectsController : Controller
         catch (Exception exception) when (
             exception is ArgumentException or InvalidOperationException)
         {
-            ModelState.AddModelError(nameof(model.Name), exception.Message);
+            ModelState.AddModelError(
+                nameof(model.Name),
+                exception.Message);
+
             return View(model);
         }
     }

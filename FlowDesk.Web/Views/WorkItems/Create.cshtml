@@ -1,4 +1,4 @@
-﻿@model FlowDesk.Web.ViewModels.WorkItems.CreateWorkItemViewModel
+@model FlowDesk.Web.ViewModels.WorkItems.CreateWorkItemViewModel
 
 @{
     ViewData["Title"] = "ایجاد تسک";
@@ -22,8 +22,8 @@
     @if (Model.Projects.Count == 0)
     {
         <div class="empty-state">
-            <h2>هنوز پروژه‌ای ندارید</h2>
-            <p>ابتدا پروژه و اعضای آن را ثبت کنید.</p>
+            <h2>پروژه‌ای برای مدیریت ندارید</h2>
+            <p>برای ساخت تسک باید مدیر پروژه باشید. می‌توانید پروژهٔ جدیدی بسازید.</p>
 
             <a asp-controller="Projects"
                asp-action="Create"

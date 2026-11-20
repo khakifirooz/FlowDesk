@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using FlowDesk.Domain.Enums;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
@@ -8,6 +8,12 @@ namespace FlowDesk.Web.ViewModels.WorkItems;
 
 public class WorkItemIndexViewModel
 {
+    public bool OnlyMine { get; set; }
+
+    [BindNever]
+    [ValidateNever]
+    public bool CanCreate { get; set; }
+
     public string? SearchText { get; set; }
 
     [Range(1, int.MaxValue, ErrorMessage = "پروژه معتبر نیست.")]

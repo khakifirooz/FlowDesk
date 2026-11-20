@@ -1,4 +1,4 @@
-﻿@model List<FlowDesk.Web.ViewModels.Projects.ProjectListItemViewModel>
+@model List<FlowDesk.Web.ViewModels.Projects.ProjectListItemViewModel>
 
 @{
     ViewData["Title"] = "پروژه‌ها";
@@ -99,6 +99,8 @@
                                         اعضای پروژه
                                     </a>
 
+                                    @if (project.CanManage)
+                                    {
                                     <a asp-controller="WorkItems"
                                        asp-action="Assign"
                                        asp-route-id=""
@@ -112,6 +114,7 @@
                                        class="btn btn-sm btn-outline-secondary">
                                         ویرایش نام
                                     </a>
+                                    }
                                 </div>
                             </td>
                         </tr>

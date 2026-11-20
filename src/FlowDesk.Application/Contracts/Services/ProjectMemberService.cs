@@ -1,4 +1,5 @@
-﻿using FlowDesk.Application.Contracts.Persistence;
+using FlowDesk.Application.Common;
+using FlowDesk.Application.Contracts.Persistence;
 using FlowDesk.Application.Contracts.Services;
 using FlowDesk.Application.DTOs.ProjectMembers;
 using FlowDesk.Domain.Entities;
@@ -12,35 +13,46 @@ public class ProjectMemberService : IProjectMemberService
     private readonly IRepository<ProjectMember> _projectMemberRepository;
     private readonly IRepository<WorkItem> _workItemRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ProjectAccess _access;
 
     public ProjectMemberService(
         IRepository<Project> projectRepository,
         IRepository<TeamMember> teamMemberRepository,
         IRepository<ProjectMember> projectMemberRepository,
         IRepository<WorkItem> workItemRepository,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork, ProjectAccess access)
     {
         _projectRepository = projectRepository;
         _teamMemberRepository = teamMemberRepository;
         _projectMemberRepository = projectMemberRepository;
         _workItemRepository = workItemRepository;
         _unitOfWork = unitOfWork;
+        _access = access;
     }
 
-    public async Task<List<ProjectMemberListItemDto>> GetByProjectIdAsync(int projectId)
+    public async Task<List<ProjectMemberListItemDto>> GetByProjectIdAsync(
+        int projectId)
     {
+        (await _access.GetScopeAsync()).RequireView(projectId);
         var memberships = await _projectMemberRepository.FindAsync(
             membership => membership.ProjectId == projectId);
 
         if (memberships.Count == 0)
+        {
             return new List<ProjectMemberListItemDto>();
+        }
 
-        var memberIds = memberships.Select(x => x.TeamMemberId).Distinct().ToList();
+        var memberIds = memberships
+            .Select(membership => membership.TeamMemberId)
+            .Distinct()
+            .ToList();
 
         var members = await _teamMemberRepository.FindAsync(
             member => memberIds.Contains(member.Id));
 
-        var namesById = members.ToDictionary(member => member.Id, member => member.FullName);
+        var namesById = members.ToDictionary(
+            member => member.Id,
+            member => member.FullName);
 
         return memberships
             .Select(membership => new ProjectMemberListItemDto
@@ -55,36 +67,66 @@ public class ProjectMemberService : IProjectMemberService
             .ToList();
     }
 
-    public async Task AddAsync(int projectId, int teamMemberId)
+    public async Task AddAsync(
+        int projectId,
+        int teamMemberId)
     {
-        if (!await _projectRepository.ExistsAsync(projectId))
-            throw new KeyNotFoundException("پروژه پیدا نشد.");
+        (await _access.GetScopeAsync()).RequireManager(projectId);
+        bool projectExists =
+            await _projectRepository.ExistsAsync(projectId);
 
-        if (!await _teamMemberRepository.ExistsAsync(teamMemberId))
-            throw new InvalidOperationException("فرد انتخاب‌شده وجود ندارد.");
+        if (!projectExists)
+        {
+            throw new KeyNotFoundException(
+                "پروژه پیدا نشد.");
+        }
+
+        bool memberExists =
+            await _teamMemberRepository.ExistsAsync(teamMemberId);
+
+        if (!memberExists)
+        {
+            throw new InvalidOperationException(
+                "فرد انتخاب‌شده وجود ندارد.");
+        }
 
         int duplicateCount = await _projectMemberRepository.CountAsync(
-            membership => membership.ProjectId == projectId &&
-                          membership.TeamMemberId == teamMemberId);
+            membership =>
+                membership.ProjectId == projectId &&
+                membership.TeamMemberId == teamMemberId);
 
         if (duplicateCount > 0)
-            throw new InvalidOperationException("این فرد قبلاً به پروژه اضافه شده است.");
+        {
+            throw new InvalidOperationException(
+                "این فرد قبلاً به پروژه اضافه شده است.");
+        }
 
-        var membership = new ProjectMember(projectId, teamMemberId);
+        var membership = new ProjectMember(
+            projectId,
+            teamMemberId);
 
         await _projectMemberRepository.AddAsync(membership);
         await _unitOfWork.SaveChangesAsync();
     }
 
-    public async Task RemoveAsync(int projectId, int membershipId)
+    public async Task RemoveAsync(
+        int projectId,
+        int membershipId)
     {
-        var membership = await _projectMemberRepository.GetByIdAsync(membershipId);
+        (await _access.GetScopeAsync()).RequireManager(projectId);
+        var membership = await _projectMemberRepository
+            .GetByIdAsync(membershipId);
 
-        if (membership is null || membership.ProjectId != projectId)
-            throw new KeyNotFoundException("عضویت موردنظر در این پروژه پیدا نشد.");
+        if (membership is null ||
+            membership.ProjectId != projectId)
+        {
+            throw new KeyNotFoundException(
+                "عضویت موردنظر در این پروژه پیدا نشد.");
+        }
 
         int assignedTaskCount = await _workItemRepository.CountAsync(
-            workItem => workItem.AssignedProjectMemberId == membershipId);
+            workItem =>
+                workItem.AssignedProjectMemberId == membershipId);
 
         if (assignedTaskCount > 0)
         {
@@ -93,14 +135,13 @@ public class ProjectMemberService : IProjectMemberService
         }
 
         _projectMemberRepository.Remove(membership);
+
         await _unitOfWork.SaveChangesAsync();
     }
 
-    public async Task SetAccountAsync(
-        int projectId,
-        int membershipId,
-        string? accountUserId)
+    public async Task SetAccountAsync(int projectId, int membershipId, string? accountUserId)
     {
+        (await _access.GetScopeAsync()).RequireManager(projectId);
         var membership = await _projectMemberRepository.GetByIdAsync(membershipId);
 
         if (membership is null || membership.ProjectId != projectId)
@@ -112,16 +153,14 @@ public class ProjectMemberService : IProjectMemberService
         }
         else
         {
-            int existing = await _projectMemberRepository.CountAsync(item =>
+            var existing = await _projectMemberRepository.CountAsync(item =>
                 item.ProjectId == projectId &&
                 item.Id != membershipId &&
                 item.AccountUserId == accountUserId);
 
             if (existing > 0)
-            {
                 throw new InvalidOperationException(
                     "این حساب قبلاً به عضو دیگری از همین پروژه متصل شده است.");
-            }
 
             membership.LinkAccount(accountUserId);
         }
@@ -129,18 +168,27 @@ public class ProjectMemberService : IProjectMemberService
         await _unitOfWork.SaveChangesAsync();
     }
 
-    public async Task<Dictionary<int, string>> GetNamesByIdsAsync(List<int> membershipIds)
+    public async Task<Dictionary<int, string>> GetNamesByIdsAsync(
+        List<int> membershipIds)
     {
         if (membershipIds.Count == 0)
+        {
             return new Dictionary<int, string>();
+        }
 
+        var ids = (await _access.GetScopeAsync()).VisibleProjectIds;
         var memberships = await _projectMemberRepository.FindAsync(
-            membership => membershipIds.Contains(membership.Id));
+            membership => membershipIds.Contains(membership.Id) && ids.Contains(membership.ProjectId));
 
         if (memberships.Count == 0)
+        {
             return new Dictionary<int, string>();
+        }
 
-        var memberIds = memberships.Select(x => x.TeamMemberId).Distinct().ToList();
+        var memberIds = memberships
+            .Select(membership => membership.TeamMemberId)
+            .Distinct()
+            .ToList();
 
         var members = await _teamMemberRepository.FindAsync(
             member => memberIds.Contains(member.Id));

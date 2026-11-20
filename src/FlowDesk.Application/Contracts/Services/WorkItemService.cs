@@ -1,4 +1,4 @@
-﻿using System.Linq.Expressions;
+using System.Linq.Expressions;
 using FlowDesk.Application.Common;
 using FlowDesk.Application.Contracts.Persistence;
 using FlowDesk.Application.Contracts.Services;
@@ -11,305 +11,161 @@ namespace FlowDesk.Application.Services;
 
 public class WorkItemService : IWorkItemService
 {
-    private readonly IRepository<WorkItem> _workItemRepository;
-    private readonly IRepository<Project> _projectRepository;
-    private readonly IRepository<ProjectMember> _projectMemberRepository;
+    private readonly IRepository<WorkItem> _items;
+    private readonly IRepository<ProjectMember> _members;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ProjectAccess _access;
 
-    public WorkItemService(
-        IRepository<WorkItem> workItemRepository,
-        IRepository<Project> projectRepository,
-        IRepository<ProjectMember> projectMemberRepository,
-        IUnitOfWork unitOfWork)
+    public WorkItemService(IRepository<WorkItem> items,
+        IRepository<ProjectMember> members, IUnitOfWork unitOfWork, ProjectAccess access)
     {
-        _workItemRepository = workItemRepository;
-        _projectRepository = projectRepository;
-        _projectMemberRepository = projectMemberRepository;
+        _items = items;
+        _members = members;
         _unitOfWork = unitOfWork;
+        _access = access;
     }
 
     public async Task<int> CreateAsync(CreateWorkItemDto input)
     {
-        bool projectExists =
-            await _projectRepository.ExistsAsync(input.ProjectId);
-
-        if (!projectExists)
-        {
-            throw new ArgumentException(
-                "پروژهٔ انتخاب‌شده وجود ندارد.",
-                nameof(input.ProjectId));
-        }
-
-        var workItem = new WorkItem(
-            input.Title,
-            input.ProjectId);
-
-        int duplicateCount = await _workItemRepository.CountAsync(
-            item =>
-                item.ProjectId == input.ProjectId &&
-                item.Title == workItem.Title);
-
-        if (duplicateCount > 0)
-        {
-            throw new InvalidOperationException(
-                "تسکی با این عنوان در همین پروژه وجود دارد.");
-        }
-
-        var membership = await RequireMembershipAsync(
-            input.ProjectId,
-            input.AssignedProjectMemberId);
-
-        workItem.AssignTo(membership);
-
-        await _workItemRepository.AddAsync(workItem);
+        (await _access.GetScopeAsync()).RequireManager(input.ProjectId);
+        var item = new WorkItem(input.Title, input.ProjectId);
+        await RequireUniqueTitleAsync(item.ProjectId, item.Title);
+        item.AssignTo(await RequireMembershipAsync(input.ProjectId, input.AssignedProjectMemberId));
+        await _items.AddAsync(item);
         await _unitOfWork.SaveChangesAsync();
-
-        return workItem.Id;
+        return item.Id;
     }
 
     public async Task<List<WorkItemListItemDto>> GetAllAsync()
     {
-        var workItems = await _workItemRepository.GetAllAsync();
-
-        return workItems
-            .OrderByDescending(item => item.Id)
-            .Select(item => new WorkItemListItemDto
-            {
-                Id = item.Id,
-                Title = item.Title,
-                ProjectId = item.ProjectId,
-                Status = item.Status,
-                AssignedProjectMemberId = item.AssignedProjectMemberId
-            })
-            .ToList();
+        var scope = await _access.GetScopeAsync();
+        var ids = scope.VisibleProjectIds;
+        var items = await _items.FindAsync(x => ids.Contains(x.ProjectId));
+        return items.OrderByDescending(x => x.Id).Select(x => Map(x, scope)).ToList();
     }
 
     public async Task<WorkItemListItemDto?> GetByIdAsync(int id)
     {
-        var workItem = await _workItemRepository.GetByIdAsync(id);
-
-        if (workItem is null)
-        {
-            return null;
-        }
-
-        return new WorkItemListItemDto
-        {
-            Id = workItem.Id,
-            Title = workItem.Title,
-            ProjectId = workItem.ProjectId,
-            Status = workItem.Status,
-            AssignedProjectMemberId = workItem.AssignedProjectMemberId
-        };
+        var scope = await _access.GetScopeAsync();
+        var item = await _items.GetByIdAsync(id);
+        if (item is null) return null;
+        scope.RequireView(item.ProjectId);
+        return Map(item, scope);
     }
 
-    public async Task<List<WorkItemListItemDto>> GetByProjectIdAsync(
-        int projectId)
+    public async Task<List<WorkItemListItemDto>> GetByProjectIdAsync(int projectId)
     {
-        var workItems = await _workItemRepository.FindAsync(
-            item => item.ProjectId == projectId);
-
-        return workItems
-            .OrderByDescending(item => item.Id)
-            .Select(item => new WorkItemListItemDto
-            {
-                Id = item.Id,
-                Title = item.Title,
-                ProjectId = item.ProjectId,
-                Status = item.Status,
-                AssignedProjectMemberId = item.AssignedProjectMemberId
-            })
-            .ToList();
+        var scope = await _access.GetScopeAsync();
+        scope.RequireView(projectId);
+        var items = await _items.FindAsync(x => x.ProjectId == projectId);
+        return items.OrderByDescending(x => x.Id).Select(x => Map(x, scope)).ToList();
     }
 
-    public async Task ChangeStatusAsync(
-        int id,
-        WorkItemStatus targetStatus)
+    public async Task<PagedResult<WorkItemListItemDto>> SearchAsync(WorkItemSearchDto input)
     {
-        var workItem = await _workItemRepository.GetByIdAsync(id);
+        if (input.ProjectId is <= 0)
+            throw new ArgumentException("شناسهٔ پروژه معتبر نیست.");
+        if (input.Status.HasValue && !Enum.IsDefined(input.Status.Value))
+            throw new ArgumentException("وضعیت معتبر نیست.");
 
-        if (workItem is null)
-        {
-            throw new KeyNotFoundException(
-                "تسک موردنظر پیدا نشد.");
-        }
+        var scope = await _access.GetScopeAsync();
+        if (input.ProjectId.HasValue) scope.RequireView(input.ProjectId.Value);
 
-        switch (targetStatus)
-        {
-            case WorkItemStatus.InProgress:
-                workItem.Start();
-                break;
-
-            case WorkItemStatus.Done:
-                workItem.Complete();
-                break;
-
-            case WorkItemStatus.ToDo:
-                workItem.Reopen();
-                break;
-
-            default:
-                throw new ArgumentException(
-                    "وضعیت انتخاب‌شده معتبر نیست.",
-                    nameof(targetStatus));
-        }
-
-        await _unitOfWork.SaveChangesAsync();
-    }
-
-    public async Task ChangeTitleAsync(int id, string title)
-    {
-        var workItem = await _workItemRepository.GetByIdAsync(id);
-
-        if (workItem is null)
-        {
-            throw new KeyNotFoundException(
-                "تسک پیدا نشد.");
-        }
-
-        string cleanTitle = TextRules.RequiredName(
-            title,
-            nameof(title),
-            "عنوان تسک");
-
-        int duplicateCount = await _workItemRepository.CountAsync(
-            item =>
-                item.Id != id &&
-                item.ProjectId == workItem.ProjectId &&
-                item.Title == cleanTitle);
-
-        if (duplicateCount > 0)
-        {
-            throw new InvalidOperationException(
-                "تسک دیگری با این عنوان در همین پروژه وجود دارد.");
-        }
-
-        workItem.ChangeTitle(cleanTitle);
-
-        await _unitOfWork.SaveChangesAsync();
-    }
-
-    public async Task ChangeAssigneeAsync(
-        int id,
-        int projectId,
-        int projectMemberId)
-    {
-        var workItem = await _workItemRepository.GetByIdAsync(id);
-
-        if (workItem is null)
-        {
-            throw new KeyNotFoundException(
-                "تسک موردنظر پیدا نشد.");
-        }
-
-        if (workItem.ProjectId != projectId)
-        {
-            throw new InvalidOperationException(
-                "تسک انتخاب‌شده متعلق به این پروژه نیست.");
-        }
-
-        var membership = await RequireMembershipAsync(
-            projectId,
-            projectMemberId);
-
-        workItem.AssignTo(membership);
-
-        await _unitOfWork.SaveChangesAsync();
-    }
-
-    public async Task<PagedResult<WorkItemListItemDto>> SearchAsync(
-        WorkItemSearchDto input)
-    {
-        if (input.ProjectId.HasValue &&
-            input.ProjectId.Value <= 0)
-        {
-            throw new ArgumentException(
-                "شناسهٔ پروژه معتبر نیست.",
-                nameof(input.ProjectId));
-        }
-
-        if (input.Status.HasValue &&
-            !Enum.IsDefined(
-                typeof(WorkItemStatus),
-                input.Status.Value))
-        {
-            throw new ArgumentException(
-                "وضعیت معتبر نیست.",
-                nameof(input.Status));
-        }
-
-        const int pageSize = 10;
-
+        var ids = scope.VisibleProjectIds;
+        var ownIds = scope.OwnMembershipIds;
         string searchText = TextRules.Normalize(input.SearchText);
         int? projectId = input.ProjectId;
-        WorkItemStatus? status = input.Status;
+        var status = input.Status;
+        bool onlyMine = input.OnlyMine;
+        const int pageSize = 10;
 
         Expression<Func<WorkItem, bool>> predicate = item =>
+            ids.Contains(item.ProjectId) &&
+            (!onlyMine || (item.AssignedProjectMemberId.HasValue &&
+                ownIds.Contains(item.AssignedProjectMemberId.Value))) &&
             (searchText == "" || item.Title.Contains(searchText)) &&
             (!projectId.HasValue || item.ProjectId == projectId.Value) &&
             (!status.HasValue || item.Status == status.Value);
 
-        int totalCount = await _workItemRepository.CountAsync(predicate);
-
-        int totalPages = Math.Max(
-            1,
-            (int)Math.Ceiling(totalCount / (double)pageSize));
-
-        int pageNumber = Math.Clamp(
-            input.PageNumber,
-            1,
-            totalPages);
-
-        var workItems = await _workItemRepository.GetPageAsync(
-            predicate,
-            pageNumber,
-            pageSize);
-
-        var items = workItems
-            .Select(item => new WorkItemListItemDto
-            {
-                Id = item.Id,
-                Title = item.Title,
-                ProjectId = item.ProjectId,
-                Status = item.Status,
-                AssignedProjectMemberId = item.AssignedProjectMemberId
-            })
-            .ToList();
+        int totalCount = await _items.CountAsync(predicate);
+        int totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize));
+        int pageNumber = Math.Clamp(input.PageNumber, 1, totalPages);
+        var items = await _items.GetPageAsync(predicate, pageNumber, pageSize);
 
         return new PagedResult<WorkItemListItemDto>
         {
-            Items = items,
+            Items = items.Select(x => Map(x, scope)).ToList(),
             TotalCount = totalCount,
             PageNumber = pageNumber,
             PageSize = pageSize
         };
     }
 
-    private async Task<ProjectMember> RequireMembershipAsync(
-        int projectId,
-        int membershipId)
+    public async Task ChangeTitleAsync(int id, string title)
     {
-        if (membershipId <= 0)
+        var scope = await _access.GetScopeAsync();
+        var item = await RequireItemAsync(id);
+        scope.RequireManager(item.ProjectId);
+        string cleanTitle = TextRules.RequiredName(title, nameof(title), "عنوان تسک");
+        await RequireUniqueTitleAsync(item.ProjectId, cleanTitle, id);
+        item.ChangeTitle(cleanTitle);
+        await _unitOfWork.SaveChangesAsync();
+    }
+
+    public async Task ChangeStatusAsync(int id, WorkItemStatus targetStatus)
+    {
+        var scope = await _access.GetScopeAsync();
+        var item = await RequireItemAsync(id);
+        scope.RequireView(item.ProjectId);
+        if (!scope.CanChangeStatus(item)) throw new UnauthorizedAccessException();
+
+        switch (targetStatus)
         {
-            throw new InvalidOperationException(
-                "یک مسئول انتخاب کنید.");
+            case WorkItemStatus.InProgress: item.Start(); break;
+            case WorkItemStatus.Done: item.Complete(); break;
+            case WorkItemStatus.ToDo: item.Reopen(); break;
+            default: throw new ArgumentException("وضعیت انتخاب‌شده معتبر نیست.");
         }
+        await _unitOfWork.SaveChangesAsync();
+    }
 
-        var membership = await _projectMemberRepository
-            .GetByIdAsync(membershipId);
+    public async Task ChangeAssigneeAsync(int id, int projectId, int projectMemberId)
+    {
+        var scope = await _access.GetScopeAsync();
+        scope.RequireManager(projectId);
+        var item = await RequireItemAsync(id);
+        if (item.ProjectId != projectId)
+            throw new InvalidOperationException("تسک متعلق به این پروژه نیست.");
+        item.AssignTo(await RequireMembershipAsync(projectId, projectMemberId));
+        await _unitOfWork.SaveChangesAsync();
+    }
 
-        if (membership is null)
-        {
-            throw new InvalidOperationException(
-                "عضویت انتخاب‌شده وجود ندارد؛ دوباره انتخاب کنید.");
-        }
+    private async Task<WorkItem> RequireItemAsync(int id) =>
+        await _items.GetByIdAsync(id) ?? throw new KeyNotFoundException("تسک پیدا نشد.");
 
-        if (membership.ProjectId != projectId)
-        {
-            throw new InvalidOperationException(
-                "مسئول تسک باید عضو همین پروژه باشد.");
-        }
-
+    private async Task<ProjectMember> RequireMembershipAsync(int projectId, int memberId)
+    {
+        var membership = await _members.GetByIdAsync(memberId);
+        if (membership is null || membership.ProjectId != projectId)
+            throw new InvalidOperationException("مسئول باید عضو همین پروژه باشد.");
         return membership;
     }
+
+    private async Task RequireUniqueTitleAsync(int projectId, string title, int exceptId = 0)
+    {
+        if (await _items.CountAsync(x => x.ProjectId == projectId &&
+            x.Title == title && x.Id != exceptId) > 0)
+            throw new InvalidOperationException("تسک دیگری با این عنوان در همین پروژه وجود دارد.");
+    }
+
+    private static WorkItemListItemDto Map(WorkItem item, ProjectScope scope) => new()
+    {
+        Id = item.Id,
+        Title = item.Title,
+        ProjectId = item.ProjectId,
+        Status = item.Status,
+        AssignedProjectMemberId = item.AssignedProjectMemberId,
+        CanManage = scope.CanManage(item.ProjectId),
+        CanChangeStatus = scope.CanChangeStatus(item)
+    };
 }
