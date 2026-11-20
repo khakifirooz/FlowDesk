@@ -4,6 +4,7 @@ using FlowDesk.Application.Contracts.Services;
 using FlowDesk.Application.Services;
 using FlowDesk.Infrastructure.Identity;
 using FlowDesk.Infrastructure.Persistence;
+using FlowDesk.Infrastructure.Queries;
 using FlowDesk.Infrastructure.Repositories;
 using FlowDesk.Web.Security;
 using Microsoft.AspNetCore.Authorization;
@@ -16,6 +17,8 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, HttpCurrentUser>();
 builder.Services.AddScoped<ProjectAccess>();
 builder.Services.AddScoped<ProjectInvitationService>();
+builder.Services.AddScoped<ManagementDashboardService>();
+builder.Services.AddScoped<IManagementDashboardReader, ManagementDashboardReader>();
 builder.Services.AddSingleton(TimeProvider.System);
 
 var connectionString = builder.Configuration.GetConnectionString("FlowDeskConnection")

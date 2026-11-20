@@ -1,11 +1,11 @@
-﻿@model FlowDesk.Web.ViewModels.Account.LoginViewModel
+@model FlowDesk.Web.ViewModels.Account.LoginViewModel
 
 @{
     ViewData["Title"] = "ورود";
 }
 
-<div class="row justify-content-center">
-    <div class="col-md-9 col-lg-6">
+<div class="auth-shell">
+    <div class="auth-panel">
         <div class="page-head">
             <div>
                 <span class="eyebrow">خوش آمدید</span>
@@ -14,7 +14,7 @@
             </div>
         </div>
 
-        <section class="panel panel-pad">
+        <section class="panel panel-pad auth-form-panel">
             <form asp-controller="Account"
                   asp-action="Login"
                   method="post"

@@ -1,0 +1,323 @@
+.management-dashboard {
+    --dash-rule: var(--line);
+    --dash-muted: var(--muted);
+    --dash-fill: #344153;
+    display: grid;
+    gap: 1.35rem;
+    line-height: 1.7;
+}
+
+.management-dashboard h1,
+.management-dashboard h2,
+.management-dashboard p,
+.management-dashboard dl,
+.management-dashboard dd {
+    margin: 0;
+}
+
+.management-dashboard p,
+.management-dashboard small {
+    color: var(--dash-muted);
+}
+
+.dash-intro,
+.dash-toolbar,
+.dash-filter,
+.dash-project-row,
+.dash-status-row > div {
+    display: flex;
+    justify-content: space-between;
+    gap: .7rem 1rem;
+}
+
+.dash-intro,
+.dash-toolbar {
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.dash-intro {
+    padding: clamp(1.05rem, 2.8vw, 2rem);
+    border: 1px solid #455269;
+    border-radius: var(--radius);
+    background: radial-gradient(ellipse at 13% 35%, #2b344c, transparent 68%), var(--surface);
+}
+
+.dash-intro p {
+    margin-block-start: .3rem;
+}
+
+.dash-today,
+.dash-activity-list time,
+.dash-date {
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.dash-today {
+    font-size: .87rem;
+    color: var(--dash-muted);
+}
+
+.dash-today time {
+    display: inline-block;
+    direction: ltr;
+    color: var(--ink);
+    margin-inline-start: .35rem;
+}
+
+.dash-toolbar {
+    align-items: end;
+}
+
+.dash-filter {
+    justify-content: start;
+    align-items: end;
+}
+
+.dash-filter > div {
+    min-width: 0;
+}
+
+.dash-filter .form-select {
+    max-width: min(32rem, 65vw);
+}
+
+.dash-filter .btn {
+    flex: 0 0 auto;
+}
+
+.dash-overview {
+    display: grid;
+    gap: .65rem;
+}
+
+.dash-metrics,
+.dash-columns {
+    display: grid;
+    gap: .85rem;
+}
+
+.dash-metrics {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.dash-columns {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+}
+
+.dash-card,
+.dash-panel {
+    padding: 1rem;
+    border: 1px solid var(--dash-rule);
+    border-radius: var(--radius);
+    background: var(--surface);
+    min-width: 0;
+}
+
+.dash-card {
+    border-block-start: 2px solid #60728a;
+}
+.dash-card:nth-child(2) { border-block-start-color: #6da492; }
+.dash-card:nth-child(3) { border-block-start-color: #b09173; }
+.dash-card:nth-child(4) { border-block-start-color: #ae7f87; }
+.dash-card:nth-child(5) { border-block-start-color: #8d80a9; }
+.dash-card dt {
+    color: var(--dash-muted);
+    font-size: .84rem;
+}
+
+.dash-card dd {
+    font-size: clamp(1.5rem, 3vw, 2.15rem);
+    line-height: 1.36;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    margin-block: .3rem;
+}
+
+.dash-card-good dd {
+    color: var(--accent);
+}
+
+.dash-card-warning dd {
+    color: var(--danger);
+}
+
+.dash-section-heading {
+    margin-block-end: .8rem;
+}
+
+.dash-section-heading p {
+    margin-block-start: .15rem;
+    font-size: .85rem;
+}
+
+.dash-empty {
+    max-width: 660px;
+    padding: 1.35rem;
+    display: grid;
+    gap: .7rem;
+}
+
+.dash-empty-note {
+    border-block-start: 1px solid var(--dash-rule);
+    padding-block-start: .75rem;
+}
+
+.dash-statuses,
+.dash-status-row,
+.dash-project-list li {
+    display: grid;
+    gap: .4rem;
+}
+
+.dash-statuses {
+    gap: .8rem;
+}
+
+.dash-status-row > div {
+    font-size: .87rem;
+    align-items: baseline;
+}
+
+.dash-progress {
+    width: 100%;
+    height: .56rem;
+    display: block;
+    appearance: none;
+    border: 0;
+    border-radius: .7rem;
+    background: var(--dash-fill);
+    overflow: hidden;
+    color: var(--dash-bar, var(--muted));
+}
+
+.dash-progress.done { --dash-bar: var(--accent); }
+.dash-progress.in-progress { --dash-bar: var(--amber); }
+.dash-progress.todo { --dash-bar: var(--lavender); }
+
+.dash-progress::-webkit-progress-bar { background: var(--dash-fill); }
+.dash-progress::-webkit-progress-value { background: var(--dash-bar); border-radius: .7rem; }
+.dash-progress::-moz-progress-bar { background: var(--dash-bar); border-radius: .7rem; }
+
+.dash-project-list,
+.dash-activity-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.dash-project-list li + li,
+.dash-activity-list li + li {
+    margin-block-start: .75rem;
+    padding-block-start: .75rem;
+    border-block-start: 1px solid var(--dash-rule);
+}
+
+.dash-project-row {
+    align-items: baseline;
+}
+
+.dash-project-row a,
+.dash-table a,
+.dash-activity-list a,
+.dash-overview h2,
+.dash-table th {
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+
+.dash-project-row strong {
+    font-size: .86rem;
+    white-space: nowrap;
+}
+
+.dash-table-wrap {
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+.dash-table {
+    width: 100%;
+    font-size: .87rem;
+    border-collapse: collapse;
+}
+
+.dash-table th,
+.dash-table td {
+    padding: .55rem .4rem;
+    border-block-start: 1px solid var(--dash-rule);
+    text-align: start;
+    vertical-align: top;
+}
+
+.dash-table thead th {
+    background: var(--surface-raised);
+    font-size: .78rem;
+    color: var(--dash-muted);
+}
+
+.dash-table th small,
+.dash-activity-list small {
+    display: block;
+    font-weight: 400;
+    overflow-wrap: anywhere;
+}
+
+.dash-date { direction: ltr; display: inline-block; }
+
+.dash-badge {
+    display: inline-block;
+    border-radius: .3rem;
+    padding: .05rem .35rem;
+    margin-inline-start: .2rem;
+    font-size: .73rem;
+    white-space: nowrap;
+}
+
+.dash-badge.danger {
+    background: var(--danger-bg);
+    color: var(--danger);
+}
+
+.dash-badge.today {
+    background: var(--amber-bg);
+    color: var(--amber);
+}
+
+.dash-activity-list li {
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+    gap: .5rem;
+    font-size: .86rem;
+}
+
+.dash-activity-list li { border-inline-start: 2px solid var(--line); padding-inline-start: .65rem; }
+
+.dash-activity-list time {
+    color: var(--dash-muted);
+    direction: ltr;
+}
+
+.dash-activity-list span {
+    display: block;
+    color: var(--dash-muted);
+    font-size: .77rem;
+}
+
+@media (max-width: 1199.98px) {
+    .dash-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 767.98px) {
+    .dash-columns { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (max-width: 479px) {
+    .dash-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .dash-filter { width: 100%; flex-wrap: wrap; }
+    .dash-filter > div, .dash-filter .form-select { width: 100%; max-width: none; }
+    .dash-badge { margin-inline-start: 0; }
+}

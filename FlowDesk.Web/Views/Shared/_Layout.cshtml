@@ -8,6 +8,7 @@
     string? currentController =
         ViewContext.RouteData.Values["controller"]?.ToString();
 
+    bool homeActive = currentController == "Home" && (string?)ViewContext.RouteData.Values["action"] == "Index";
     bool dashboardActive = currentController == "Dashboard";
 
     bool projectsActive =
@@ -29,149 +30,123 @@
 }
 
 <!DOCTYPE html>
-<html lang="fa" dir="rtl">
+<html lang="fa" dir="rtl" data-bs-theme="dark">
 <head>
     <meta charset="utf-8" />
-
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0" />
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#141922" />
     <title>@ViewData["Title"] | FlowDesk</title>
-
-    <link rel="stylesheet"
-          href="~/lib/bootstrap/dist/css/bootstrap.rtl.min.css" />
-
-    <link rel="stylesheet"
-          href="~/css/site.css"
-          asp-append-version="true" />
-
+    <link rel="icon" type="image/svg+xml" href="~/flowdesk-mark.svg" asp-append-version="true" />
+    <link rel="preload" href="~/fonts/NotoSansArabic-Regular.woff2"
+          as="font" type="font/woff2" crossorigin="anonymous" />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.rtl.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     @await RenderSectionAsync("Styles", required: false)
 </head>
-
-<body>
-    <a class="skip-link" href="#main-content">
-        رفتن به محتوای صفحه
-    </a>
-
-    <header class="app-header">
-        <nav class="navbar navbar-expand-xl"
-             aria-label="منوی اصلی">
-
-            <div class="container">
-                <a class="navbar-brand brand"
-                   asp-controller="Home"
-                   asp-action="Index">
-
-                    <span class="brand-mark" aria-hidden="true">
-                        F
-                    </span>
-
-                    <span>
-                        <b dir="ltr">FlowDesk</b>
-                        <small>مدیریت پروژه و کارهای تیم</small>
-                    </span>
-                </a>
-
-                @if (signedIn)
-                {
-                    <button class="navbar-toggler"
-                            type="button"
-                            data-bs-toggle="collapse"
-                            data-bs-target="#main-nav"
-                            aria-controls="main-nav"
-                            aria-expanded="false"
-                            aria-label="باز کردن منو">
-
-                        <span class="navbar-toggler-icon"></span>
-                    </button>
-
-                    <div class="collapse navbar-collapse" id="main-nav">
-                        <div class="navbar-nav ms-auto gap-xl-1">
-
-                            @if (canManageProjects)
-                            {
-                                <a class="nav-link @(dashboardActive ? "active" : "")"
-                               asp-controller="Dashboard"
-                               asp-action="Index"
-                               aria-current="@(dashboardActive ? "page" : null)">
-                                    داشبورد
-                                </a>
-                            }
-
-                            <a class="nav-link @(projectsActive ? "active" : "")"
-                               asp-controller="Projects"
-                               asp-action="Index"
+<body class="@(signedIn ? "workspace-body" : "public-body")">
+    <a class="skip-link" href="#main-content">رفتن به محتوای صفحه</a>
+    <div class="app-shell @(signedIn ? "workspace-shell" : "public-shell")">
+        @if (signedIn)
+        {
+            <header class="app-header workspace-header">
+                <nav class="workspace-rail" aria-label="منوی فضای کار">
+                    <div class="rail-top">
+                        <partial name="_FlowBrand" />
+                        <button class="rail-toggle btn btn-outline-secondary" type="button"
+                                data-bs-toggle="collapse" data-bs-target="#main-nav"
+                                aria-controls="main-nav" aria-expanded="false" aria-label="باز کردن منو">
+                            <partial name="_FlowIcon" model='"menu"' />
+                        </button>
+                    </div>
+                    <div class="collapse rail-menu" id="main-nav">
+                        <div class="rail-links">
+                            <span class="rail-caption">فضای کار</span>
+                            <a class="rail-link @(homeActive ? "active" : "")" asp-controller="Home" asp-action="Index"
+                               aria-current="@(homeActive ? "page" : null)">
+                                <partial name="_FlowIcon" model='"home"' />
+                                خانه
+                            </a>
+                            <a class="rail-link @(projectsActive ? "active" : "")" asp-controller="Projects" asp-action="Index"
                                aria-current="@(projectsActive ? "page" : null)">
+                                <partial name="_FlowIcon" model='"projects"' />
                                 پروژه‌ها
                             </a>
-
-                            <a class="nav-link @(tasksActive && !myTasksActive ? "active" : "")"
-                               asp-controller="WorkItems"
-                               asp-action="Index"
+                            <a class="rail-link @(tasksActive && !myTasksActive ? "active" : "")" asp-controller="WorkItems" asp-action="Index"
                                aria-current="@(tasksActive && !myTasksActive ? "page" : null)">
+                                <partial name="_FlowIcon" model='"tasks"' />
                                 تسک‌ها
                             </a>
-
-                            <a class="nav-link @(myTasksActive ? "active" : "")"
-                               asp-controller="WorkItems" asp-action="Index" asp-route-OnlyMine="true"
-                               aria-current="@(myTasksActive ? "page" : null)">تسک‌های من</a>
-
+                            <a class="rail-link @(myTasksActive ? "active" : "")" asp-controller="WorkItems" asp-action="Index" asp-route-OnlyMine="true"
+                               aria-current="@(myTasksActive ? "page" : null)">
+                                <partial name="_FlowIcon" model='"personal"' />
+                                تسک‌های من
+                            </a>
                             @if (canManageProjects)
                             {
-                                <a class="nav-link @(membersActive ? "active" : "")"
-                                   asp-controller="TeamMembers"
-                                   asp-action="Index"
+                                <span class="rail-caption rail-caption-secondary">مدیریت</span>
+                                <a class="rail-link @(dashboardActive ? "active" : "")" asp-controller="Dashboard" asp-action="Index"
+                                   aria-current="@(dashboardActive ? "page" : null)">
+                                    <partial name="_FlowIcon" model='"dashboard"' />
+                                    داشبورد
+                                </a>
+                                <a class="rail-link @(membersActive ? "active" : "")" asp-controller="TeamMembers" asp-action="Index"
                                    aria-current="@(membersActive ? "page" : null)">
+                                    <partial name="_FlowIcon" model='"team"' />
                                     فهرست افراد تیم
                                 </a>
                             }
-
                         </div>
-
-                        <div class="d-flex flex-wrap align-items-center gap-3 mt-3 mt-xl-0">
-                            <span class="small text-muted text-break">
+                        <div class="rail-account">
+                            <div class="rail-account-name">
+                                <span class="rail-account-icon"><partial name="_FlowIcon" model='"team"' /></span>
                                 <bdi>@displayName</bdi>
-                            </span>
-
-                            <form asp-controller="Account" asp-action="Logout"
-                                  method="post" class="m-0" data-prevent-double-submit>
-                                <button type="submit" class="btn btn-outline-secondary btn-sm">
-                                    خروج
+                            </div>
+                            <form asp-controller="Account" asp-action="Logout" method="post" class="m-0" data-prevent-double-submit>
+                                <button type="submit" class="btn btn-outline-secondary btn-sm rail-signout" aria-label="خروج از حساب" title="خروج از حساب">
+                                    <partial name="_FlowIcon" model='"logout"' />
                                 </button>
                             </form>
                         </div>
                     </div>
-                }
-                else
-                {
-                    <a class="btn btn-sm btn-outline-secondary ms-auto"
-                       asp-controller="Account" asp-action="Login">
-                        ورود
-                    </a>
-                }
-            </div>
-        </nav>
-    </header>
+                </nav>
+            </header>
+        }
+        else
+        {
+            <header class="app-header public-header">
+                <nav class="public-nav shell-width" aria-label="منوی اصلی">
+                    <partial name="_FlowBrand" />
+                    <a class="btn btn-sm btn-outline-secondary ms-auto" asp-controller="Account" asp-action="Login">ورود</a>
+                </nav>
+            </header>
+        }
 
-    <main id="main-content" class="container app-main">
-        @RenderBody()
-    </main>
-
-    <footer class="app-footer">
-        <div class="container">
-            <span dir="ltr">FlowDesk</span>
-            <span class="footer-separator" aria-hidden="true">•</span>
-            مدیریت پروژه و کارهای تیم
+        <div class="app-content">
+            @if (signedIn)
+            {
+                <div class="workspace-bar">
+                    <div class="shell-width workspace-bar-inner">
+                        <a asp-controller="Home" asp-action="Index">فضای کار</a>
+                        <span class="workspace-bar-divider" aria-hidden="true">/</span>
+                        <span class="workspace-location"><bdi>@ViewData["Title"]</bdi></span>
+                    </div>
+                </div>
+            }
+            <main id="main-content" class="shell-width app-main" tabindex="-1">
+                @RenderBody()
+            </main>
+            <footer class="app-footer">
+                <div class="shell-width footer-inner">
+                    <b dir="ltr">FlowDesk</b>
+                    <span>مدیریت پروژه و کارهای تیم</span>
+                    <a asp-controller="Home" asp-action="Index">خانه</a>
+                </div>
+            </footer>
         </div>
-    </footer>
-
+    </div>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
-
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-
-    <script src="~/js/site.js"
-            asp-append-version="true"></script>
-
+    <script src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

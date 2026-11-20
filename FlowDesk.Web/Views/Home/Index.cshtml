@@ -1,13 +1,18 @@
-﻿@model FlowDesk.Web.ViewModels.Home.WorkspaceHomeViewModel
+@model FlowDesk.Web.ViewModels.Home.WorkspaceHomeViewModel
 
 @{
     ViewData["Title"] = Model is null ? "خانه" : "فضای کار من";
 }
 
+@section Styles {
+    <link rel="stylesheet" href="~/css/home.css" asp-append-version="true" />
+}
+
 @if (Model is { } workspace)
 {
-    <div class="page-head">
+    <div class="page-head workspace-welcome">
         <div>
+            <span class="eyebrow">نمای شروع</span>
             <h1>فضای کار من</h1>
             <p>@(workspace.ManagesProjects ? "کارهای خودت و وضعیت پروژه‌هایی را که مدیریت می‌کنی از اینجا دنبال کن."
                 : workspace.BelongsToProject ? "کارهای واگذارشده و پروژه‌هایی را که در آن‌ها عضو هستی ببین."
@@ -19,7 +24,8 @@
         @if (workspace.BelongsToProject)
         {
             <div class="col">
-                <section class="panel panel-pad h-100">
+                <section class="panel panel-pad workspace-tile h-100">
+                    <span class="tile-icon"><partial name="_FlowIcon" model='"personal"' /></span>
                     <h2>تسک‌های من</h2>
                     <p>کارهایی که به حساب تو واگذار شده‌اند.</p>
                     <div class="d-flex flex-wrap gap-2">
@@ -32,7 +38,8 @@
         @if (workspace.ManagesProjects)
         {
             <div class="col">
-                <section class="panel panel-pad h-100">
+                <section class="panel panel-pad workspace-tile h-100">
+                    <span class="tile-icon"><partial name="_FlowIcon" model='"dashboard"' /></span>
                     <h2>مدیریت پروژه‌ها</h2>
                     <p>پیشرفت پروژه‌ها و موارد نیازمند پیگیری.</p>
                     <div class="d-flex flex-wrap gap-2">
@@ -45,7 +52,8 @@
         @if (workspace.ManagesProjects || workspace.BelongsToProject)
         {
             <div class="col">
-                <section class="panel panel-pad h-100">
+                <section class="panel panel-pad workspace-tile h-100">
+                    <span class="tile-icon"><partial name="_FlowIcon" model='"projects"' /></span>
                     <h2>پروژه‌های من</h2>
                     <p>تسک‌ها و اعضای هر پروژه را یک‌جا پیدا کن.</p>
                     <a asp-controller="Projects" asp-action="Index" class="btn btn-outline-primary">دیدن پروژه‌ها</a>
@@ -55,14 +63,16 @@
         else
         {
             <div class="col">
-                <section class="panel panel-pad h-100">
+                <section class="panel panel-pad workspace-tile h-100">
+                    <span class="tile-icon"><partial name="_FlowIcon" model='"projects"' /></span>
                     <h2>اولین پروژه‌ات را بساز</h2>
                     <p>بعد از ساخت پروژه می‌توانی اعضا را اضافه کنی و تسک بدهی.</p>
                     <a asp-controller="Projects" asp-action="Create" class="btn btn-primary">ایجاد پروژه</a>
                 </section>
             </div>
             <div class="col">
-                <section class="panel panel-pad h-100">
+                <section class="panel panel-pad workspace-tile h-100">
+                    <span class="tile-icon"><partial name="_FlowIcon" model='"team"' /></span>
                     <h2>به تیمی دعوت شده‌ای؟</h2>
                     <p class="mb-0">لینکی را که مدیر پروژه فرستاده باز کن و با همین حساب دعوت را بپذیر.</p>
                 </section>
@@ -72,108 +82,70 @@
     return;
 }
 
-<section class="hero mb-4">
-    <span class="eyebrow">
-        فضای کاری تیم شما
-    </span>
-
-    <h1>از برنامه تا انجام کار.</h1>
-
-    <p class="mt-3 mb-4">
-        پروژه‌ها را بسازید، اعضای تیم را کنار هم قرار دهید
-        و مسئول هر تسک را مشخص کنید.
-        وضعیت کارهای تیم را در یک جا دنبال کنید.
-    </p>
-
-    <div class="d-flex flex-wrap gap-2">
-        <a href="#workspace-preview" class="btn btn-light">دیدن محیط کار</a>
-        <a asp-controller="Projects" asp-action="Create" class="btn btn-outline-light">ایجاد پروژه</a>
-    </div>
-</section>
-
-<section id="workspace-preview" class="panel panel-pad mb-4" tabindex="-1" aria-labelledby="workspace-preview-title">
-    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
-        <div>
-            <span class="eyebrow">نمای نمونه</span>
-            <h2 id="workspace-preview-title" class="mb-1">تسک‌های یک پروژه در FlowDesk</h2>
-            <p class="mb-0">پروژهٔ فرضی «طراحی فروشگاه» با سه تسک نمونه.</p>
+<div class="landing">
+    <section class="landing-hero" aria-labelledby="landing-title">
+        <div class="landing-intro">
+            <span class="landing-kicker"><span aria-hidden="true"></span> فضای کار تیمی</span>
+            <h1 id="landing-title">کار تیم،<br /><em>در یک نگاه.</em></h1>
+            <p>پروژه‌ها، مسئول هر کار و مهلت‌ها را یک‌جا ببینید؛ از اولین تسک تا تحویل.</p>
+            <div class="landing-actions">
+                <a asp-controller="Projects" asp-action="Create" class="btn btn-primary">
+                    ایجاد پروژه <partial name="_FlowIcon" model='"arrow"' />
+                </a>
+                <a href="#workspace-preview" class="btn btn-outline-secondary">دیدن نمونهٔ محیط</a>
+            </div>
         </div>
-    </div>
 
-    <ul class="row row-cols-1 row-cols-md-3 g-3 list-unstyled mb-0">
-        <li class="col">
-            <div class="border rounded-3 h-100 p-3">
-                <span class="status status-todo mb-2">انجام‌نشده</span>
-                <h3 class="mb-1">طراحی صفحهٔ محصولات</h3>
-                <p class="small mb-0">مسئول: نازنین</p>
+        <section id="workspace-preview" class="preview-board" tabindex="-1" aria-labelledby="workspace-preview-title">
+            <header class="preview-top">
+                <div class="tile-icon"><partial name="_FlowIcon" model='"projects"' /></div>
+                <div>
+                    <span class="preview-caption">پروژهٔ فرضی</span>
+                    <h2 id="workspace-preview-title">طراحی فروشگاه</h2>
+                </div>
+                <span class="preview-tag">نمونه</span>
+            </header>
+            <div class="preview-meter">
+                <div><span>پیشرفت پروژه</span><strong>۱ از ۳</strong></div>
+                <progress value="1" max="3" aria-label="یک تسک از سه تسک انجام شده">۱ از ۳</progress>
             </div>
-        </li>
-        <li class="col">
-            <div class="border rounded-3 h-100 p-3">
-                <span class="status status-progress mb-2">در حال انجام</span>
-                <h3 class="mb-1">آماده‌سازی سبد خرید</h3>
-                <p class="small mb-0">مسئول: امیر</p>
-            </div>
-        </li>
-        <li class="col">
-            <div class="border rounded-3 h-100 p-3">
-                <span class="status status-done mb-2">انجام‌شده</span>
-                <h3 class="mb-1">تعریف دسته‌بندی‌ها</h3>
-                <p class="small mb-0">مسئول: مریم</p>
-            </div>
-        </li>
-    </ul>
-</section>
+            <ul class="preview-tasks">
+                <li>
+                    <span class="status status-done">انجام‌شده</span>
+                    <div><h3>تعریف دسته‌بندی‌ها</h3><small>مریم</small></div>
+                    <span class="preview-person preview-person-mint" aria-hidden="true">م</span>
+                </li>
+                <li>
+                    <span class="status status-progress">در حال انجام</span>
+                    <div><h3>آماده‌سازی سبد خرید</h3><small>امیر</small></div>
+                    <span class="preview-person preview-person-amber" aria-hidden="true">ا</span>
+                </li>
+                <li>
+                    <span class="status status-todo">انجام‌نشده</span>
+                    <div><h3>طراحی صفحهٔ محصولات</h3><small>نازنین</small></div>
+                    <span class="preview-person" aria-hidden="true">ن</span>
+                </li>
+            </ul>
+        </section>
+    </section>
 
-<div class="row g-3">
-    <div class="col-md-4">
-        <article class="panel feature-card">
-            <span class="eyebrow">۰۱ / برنامه‌ریزی</span>
-
+    <section class="landing-capabilities" aria-label="امکانات FlowDesk">
+        <article>
+            <span class="tile-icon"><partial name="_FlowIcon" model='"projects"' /></span>
             <h2>پروژه‌ها</h2>
-
-            <p>
-                برای هر پروژه نام مشخص و تیم مناسب انتخاب کنید.
-            </p>
-
-            <a asp-controller="Projects"
-               asp-action="Create">
-                ایجاد پروژه ←
-            </a>
+            <p>تسک‌ها، اعضا و پیشرفت هر پروژه را یک‌جا ببینید.</p>
+            <a asp-controller="Projects" asp-action="Index">فهرست پروژه‌ها <partial name="_FlowIcon" model='"arrow"' /></a>
         </article>
-    </div>
-
-    <div class="col-md-4">
-        <article class="panel feature-card">
-            <span class="eyebrow">۰۲ / همکاری</span>
-
-            <h2>اعضای تیم</h2>
-
-            <p>
-                افراد را ثبت کنید و به پروژه‌های مربوط اضافه کنید.
-            </p>
-
-            <a asp-controller="Projects"
-               asp-action="Index">
-                پیدا کردن اعضا از فهرست پروژه‌ها ←
-            </a>
+        <article>
+            <span class="tile-icon tile-icon-alt"><partial name="_FlowIcon" model='"team"' /></span>
+            <h2>همکاری تیمی</h2>
+            <p>افراد را دعوت کنید و مسئول هر کار را مشخص کنید.</p>
         </article>
-    </div>
-
-    <div class="col-md-4">
-        <article class="panel feature-card">
-            <span class="eyebrow">۰۳ / پیگیری</span>
-
-            <h2>تسک‌ها و مسئولیت‌ها</h2>
-
-            <p>
-                مسئول را انتخاب کنید و وضعیت انجام هر کار را ببینید.
-            </p>
-
-            <a asp-controller="WorkItems"
-               asp-action="Index">
-                مشاهدهٔ تسک‌ها ←
-            </a>
+        <article>
+            <span class="tile-icon tile-icon-warm"><partial name="_FlowIcon" model='"personal"' /></span>
+            <h2>پیگیری تسک‌ها</h2>
+            <p>بدانید امروز چه موعدی دارید و کدام کار نیاز به پیگیری دارد.</p>
+            <a asp-controller="WorkItems" asp-action="Index" asp-route-OnlyMine="true">تسک‌های من <partial name="_FlowIcon" model='"arrow"' /></a>
         </article>
-    </div>
+    </section>
 </div>

@@ -23,6 +23,7 @@
 
 <div class="page-head">
     <div>
+        <span class="eyebrow">کارهای تیم</span>
         <h1>@ViewData["Title"]</h1>
         <p>@(Model.OnlyMine ? "کارهایی که مسئولیت آن‌ها به تو واگذار شده است."
             : Model.ManagedOnly ? "کارهای پروژه‌هایی که مدیریت می‌کنی."
@@ -115,7 +116,7 @@
 </form>
 
 <p class="text-muted">کل نتایج: @Model.TotalCount — تعداد این صفحه: @Model.Items.Count</p>
-<section class="panel">
+<section class="panel task-sheet @(Model.Items.Count > 0 ? "task-sheet-filled" : null)">
     @if (Model.Items.Count == 0)
     {
         <div class="empty-state">
@@ -166,12 +167,12 @@
     else
     {
         <div class="table-responsive" role="region" aria-label="جدول تسک‌ها؛ برای دیدن ستون‌های بیشتر پیمایش کنید" tabindex="0">
-            <table class="table align-middle">
-                <thead><tr>
-                    <th scope="col">عنوان</th><th scope="col">پروژه</th><th scope="col">مسئول</th>
-                    <th scope="col">وضعیت</th><th scope="col">اولویت</th><th scope="col">مهلت</th><th scope="col">عملیات</th>
+            <table class="table align-middle task-table" role="table">
+                <thead role="rowgroup"><tr role="row">
+                    <th scope="col" role="columnheader">عنوان</th><th scope="col" role="columnheader">پروژه</th><th scope="col" role="columnheader">مسئول</th>
+                    <th scope="col" role="columnheader">وضعیت</th><th scope="col" role="columnheader">اولویت</th><th scope="col" role="columnheader">مهلت</th><th scope="col" role="columnheader">عملیات</th>
                 </tr></thead>
-                <tbody>
+                <tbody role="rowgroup">
                 @foreach (var item in Model.Items)
                 {
                     var statusClass = item.Status switch
@@ -180,19 +181,19 @@
                         WorkItemStatus.InProgress => "status-progress",
                         _ => "status-todo"
                     };
-                    <tr>
-                        <th scope="row" class="text-break"><a asp-action="Details" asp-route-id="@item.Id" asp-route-returnUrl="@returnUrl"><bdi>@item.Title</bdi></a></th>
-                        <td class="text-break"><bdi>@item.ProjectName</bdi></td>
-                        <td class="text-break"><bdi>@item.AssignedMemberName</bdi></td>
-                        <td><span class="status @statusClass">@item.StatusText</span></td>
-                        <td>@WorkItemLabels.Priority(item.Priority)</td>
-                        <td>
+                    <tr role="row">
+                        <th scope="row" role="rowheader" class="text-break task-row-title"><a asp-action="Details" asp-route-id="@item.Id" asp-route-returnUrl="@returnUrl"><bdi>@item.Title</bdi></a></th>
+                        <td role="cell" class="text-break" data-label="پروژه"><bdi>@item.ProjectName</bdi></td>
+                        <td role="cell" class="text-break" data-label="مسئول"><bdi>@item.AssignedMemberName</bdi></td>
+                        <td role="cell" data-label="وضعیت"><span class="status @statusClass">@item.StatusText</span></td>
+                        <td role="cell" data-label="اولویت">@WorkItemLabels.Priority(item.Priority)</td>
+                        <td role="cell" data-label="مهلت">
                             @if (item.DueDate is DateOnly dueDate)
                             {
                                 <time dir="ltr" class="text-nowrap" datetime="@IsoDate(dueDate)">@PersianDate(dueDate)</time>
                                 @if (!Model.Archived && item.Status != WorkItemStatus.Done && dueDate <= Model.Today)
                                 {
-                                    <span class="status status-progress">@(dueDate < Model.Today ? "عقب‌افتاده" : "امروز")</span>
+                                    <span class="status @(dueDate < Model.Today ? "status-late" : "status-progress")">@(dueDate < Model.Today ? "عقب‌افتاده" : "امروز")</span>
                                 }
                             }
                             else
@@ -200,7 +201,7 @@
                                 <span aria-label="بدون مهلت">—</span>
                             }
                         </td>
-                        <td>
+                        <td role="cell" class="task-row-actions">
                             <div class="d-flex flex-wrap gap-2">
                                 @if (item.CanChangeStatus)
                                 {
