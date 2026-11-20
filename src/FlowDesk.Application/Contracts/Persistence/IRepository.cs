@@ -23,6 +23,12 @@ public interface IRepository<TEntity>
         int pageNumber,
         int pageSize);
 
+    Task<List<TEntity>> GetPageOrderedAsync<TKey>(
+        Expression<Func<TEntity, bool>> predicate,
+        Expression<Func<TEntity, TKey>> orderBy,
+        int pageNumber,
+        int pageSize);
+
     void Remove(TEntity entity);
 
 } 

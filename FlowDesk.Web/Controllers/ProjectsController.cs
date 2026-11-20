@@ -68,9 +68,9 @@ public class ProjectsController : Controller
             int projectId = await _projectService.CreateAsync(input);
 
             TempData["SuccessMessage"] =
-                $"پروژه با شناسهٔ {projectId} ثبت شد.";
+                "پروژه ساخته شد. حالا می‌توانید اعضای تیم را اضافه کنید.";
 
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction("Index", "ProjectMembers", new { projectId });
         }
         catch (Exception exception) when (
             exception is ArgumentException or InvalidOperationException)

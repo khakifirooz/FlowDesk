@@ -4,6 +4,9 @@ namespace FlowDesk.Web.ViewModels.TeamMembers;
 
 public class CreateTeamMemberViewModel
 {
+    [Range(1, int.MaxValue)]
+    public int? ProjectId { get; set; }
+
     [Required(ErrorMessage = "نام عضو را وارد کنید.")]
     [Display(Name = "نام و نام خانوادگی")]
     [StringLength(200, ErrorMessage = "نام حداکثر می‌تواند ۲۰۰ کاراکتر باشد.")]

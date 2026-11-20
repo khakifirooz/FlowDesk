@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using FlowDesk.Application.Common;
 using FlowDesk.Application.Contracts.Services;
 using FlowDesk.Application.DTOs.WorkItems;
 using FlowDesk.Domain.Enums;
@@ -18,29 +19,55 @@ public class WorkItemsController : Controller
     private readonly IProjectService _projects;
     private readonly IProjectMemberService _members;
     private readonly UserManager<ApplicationUser> _accounts;
+    private readonly TimeProvider _clock;
     private string? UserId => User.FindFirstValue(ClaimTypes.NameIdentifier);
 
     public WorkItemsController(IWorkItemService items, IProjectService projects,
-        IProjectMemberService members, UserManager<ApplicationUser> accounts)
+        IProjectMemberService members, UserManager<ApplicationUser> accounts, TimeProvider clock)
     {
         _items = items;
         _projects = projects;
         _members = members;
         _accounts = accounts;
+        _clock = clock;
     }
 
     [HttpGet]
     public async Task<IActionResult> Index(WorkItemIndexViewModel model)
     {
         var projects = await _projects.GetAllAsync();
-        model.CanCreate = projects.Any(x => x.ManagerUserId == UserId);
-        model.Projects = projects.OrderBy(x => x.Name).Select(x =>
-            new SelectListItem(x.Name, x.Id.ToString())).ToList();
-        if (!ModelState.IsValid) return View(model);
+        model.Today = FlowDeskCalendar.Today(_clock);
+        model.HasManagedProjects = projects.Any(x => x.ManagerUserId == UserId);
+        model.CanCreate = model.ProjectId is int projectId
+            ? projects.Any(x => x.Id == projectId && x.ManagerUserId == UserId)
+            : model.HasManagedProjects;
+        model.Projects = projects.Where(x => !model.ManagedOnly || x.ManagerUserId == UserId)
+            .OrderBy(x => x.Name).Select(x => new SelectListItem(x.Name, x.Id.ToString())).ToList();
+        if (!ModelState.IsValid)
+        {
+            foreach (var (field, message) in new[]
+            {
+                (nameof(model.Focus), "فیلتر اقدام برای این فهرست معتبر نیست."),
+                (nameof(model.Status), "وضعیت انتخاب‌شده معتبر نیست."),
+                (nameof(model.Priority), "اولویت انتخاب‌شده معتبر نیست."),
+                (nameof(model.ProjectId), "شناسهٔ پروژه معتبر نیست."),
+                (nameof(model.PageNumber), "شمارهٔ صفحه معتبر نیست.")
+            })
+            {
+                if (!ModelState.TryGetValue(field, out var entry) || entry.Errors.Count == 0)
+                    continue;
+
+                entry.Errors.Clear();
+                ModelState.AddModelError(field, message);
+            }
+
+            return View(model);
+        }
 
         var result = await _items.SearchAsync(new WorkItemSearchDto
         {
             OnlyMine = model.OnlyMine, SearchText = model.SearchText, Archived = model.Archived,
+            ManagedOnly = model.ManagedOnly, Focus = model.Focus,
             Priority = model.Priority, ProjectId = model.ProjectId, Status = model.Status, PageNumber = model.PageNumber
         });
         model.TotalCount = result.TotalCount;
@@ -72,7 +99,7 @@ public class WorkItemsController : Controller
     {
         if (!ModelState.IsValid || projectId is <= 0) return BadRequest();
         var model = new CreateWorkItemViewModel { ProjectId = projectId };
-        if (!await LoadCreateAsync(model)) return NotFound();
+        if (!await LoadCreateAsync(model, selectSingleProject: true)) return NotFound();
         return View(model);
     }
 
@@ -90,7 +117,7 @@ public class WorkItemsController : Controller
                     AssignedProjectMemberId = model.AssignedProjectMemberId!.Value
                 });
                 TempData["SuccessMessage"] = $"تسک با شناسهٔ {id} ثبت شد.";
-                return RedirectToAction(nameof(Index), new { projectId = model.ProjectId });
+                return RedirectToAction(nameof(Details), new { id });
             }
             catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
             {
@@ -102,7 +129,7 @@ public class WorkItemsController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> Edit(int id)
+    public async Task<IActionResult> Edit(int id, string? returnUrl)
     {
         var item = await _items.GetByIdAsync(id);
         if (item is null) return NotFound();
@@ -110,7 +137,7 @@ public class WorkItemsController : Controller
         if (item.ArchivedAtUtc is not null) return RedirectToAction(nameof(Details), new { id });
         return View(new EditWorkItemViewModel
         {
-            Id = item.Id, Title = item.Title, Description = item.Description,
+            Id = item.Id, Title = item.Title, Description = item.Description, ReturnUrl = SafeReturnUrl(returnUrl),
             Priority = item.Priority, DueDate = item.DueDate
         });
     }
@@ -119,6 +146,7 @@ public class WorkItemsController : Controller
     public async Task<IActionResult> Edit(int id, EditWorkItemViewModel model)
     {
         if (id <= 0 || id != model.Id) return BadRequest();
+        model.ReturnUrl = SafeReturnUrl(model.ReturnUrl);
         var item = await _items.GetByIdAsync(id);
         if (item is null) return NotFound();
         if (!item.CanManage) return Forbid();
@@ -127,7 +155,8 @@ public class WorkItemsController : Controller
         {
             await _items.EditAsync(id, new EditWorkItemDto(model.Title, model.Description, model.Priority, model.DueDate));
             TempData["SuccessMessage"] = "تسک ویرایش شد.";
-            return RedirectToAction(nameof(Index), new { projectId = item.ProjectId });
+            return model.ReturnUrl is string destination
+                ? LocalRedirect(destination) : RedirectToAction(nameof(Details), new { id });
         }
         catch (KeyNotFoundException) { return NotFound(); }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
@@ -148,15 +177,15 @@ public class WorkItemsController : Controller
         }
         catch (KeyNotFoundException) { return NotFound(); }
         catch (InvalidOperationException ex) { TempData["ErrorMessage"] = ex.Message; }
-        return !string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl)
-            ? LocalRedirect(returnUrl) : RedirectToAction(nameof(Index));
+        return SafeReturnUrl(returnUrl) is string destination
+            ? LocalRedirect(destination) : RedirectToAction(nameof(Index));
     }
 
     [HttpGet]
-    public async Task<IActionResult> Assign(int? id, int? projectId)
+    public async Task<IActionResult> Assign(int? id, int? projectId, string? returnUrl)
     {
         if (!ModelState.IsValid || id is <= 0 || projectId is <= 0) return BadRequest();
-        var model = new AssignWorkItemViewModel { Id = id, ProjectId = projectId };
+        var model = new AssignWorkItemViewModel { Id = id, ProjectId = projectId, ReturnUrl = SafeReturnUrl(returnUrl) };
         if (id.HasValue)
         {
             var item = await _items.GetByIdAsync(id.Value);
@@ -167,13 +196,14 @@ public class WorkItemsController : Controller
             model.ProjectId = item.ProjectId;
             model.AssignedProjectMemberId = item.AssignedProjectMemberId;
         }
-        if (!await LoadAssignAsync(model)) return NotFound();
+        if (!await LoadAssignAsync(model, selectSingleProject: true)) return NotFound();
         return View(model);
     }
 
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Assign(AssignWorkItemViewModel model)
     {
+        model.ReturnUrl = SafeReturnUrl(model.ReturnUrl);
         if (ModelState.IsValid)
         {
             try
@@ -181,7 +211,8 @@ public class WorkItemsController : Controller
                 await _items.ChangeAssigneeAsync(model.Id!.Value, model.ProjectId!.Value,
                     model.AssignedProjectMemberId!.Value);
                 TempData["SuccessMessage"] = "مسئول تسک ذخیره شد.";
-                return RedirectToAction(nameof(Index), new { projectId = model.ProjectId });
+                return model.ReturnUrl is string destination
+                    ? LocalRedirect(destination) : RedirectToAction(nameof(Details), new { id = model.Id });
             }
             catch (KeyNotFoundException) { return NotFound(); }
             catch (InvalidOperationException ex) { ModelState.AddModelError(string.Empty, ex.Message); }
@@ -207,7 +238,7 @@ public class WorkItemsController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> Details(int id, int activityPage = 1)
+    public async Task<IActionResult> Details(int id, int activityPage = 1, string? returnUrl = null)
     {
         if (!ModelState.IsValid || id <= 0) return BadRequest();
         var details = await _items.GetDetailsAsync(id, activityPage);
@@ -219,11 +250,12 @@ public class WorkItemsController : Controller
             var names = await _members.GetNamesByIdsAsync(new List<int> { membershipId });
             if (names.TryGetValue(membershipId, out var name)) assignee = name;
         }
-        return View(new WorkItemDetailsViewModel(details, project?.Name ?? "—", assignee));
+        return View(new WorkItemDetailsViewModel(details, project?.Name ?? "—", assignee,
+            SafeReturnUrl(returnUrl), FlowDeskCalendar.Today(_clock)));
     }
 
     [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> AddComment([FromForm] int id, [FromForm] string? comment)
+    public async Task<IActionResult> AddComment([FromForm] int id, [FromForm] string? comment, [FromForm] string? returnUrl)
     {
         if (!ModelState.IsValid || id <= 0) return BadRequest();
         var account = await _accounts.GetUserAsync(User);
@@ -239,11 +271,11 @@ public class WorkItemsController : Controller
         {
             TempData["ErrorMessage"] = ex.Message;
         }
-        return RedirectToAction(nameof(Details), new { id });
+        return RedirectToAction(nameof(Details), new { id, returnUrl = SafeReturnUrl(returnUrl) });
     }
 
     [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> SetArchived([FromForm] int id, [FromForm] bool? archived)
+    public async Task<IActionResult> SetArchived([FromForm] int id, [FromForm] bool? archived, [FromForm] string? returnUrl)
     {
         if (!ModelState.IsValid || id <= 0 || !archived.HasValue) return BadRequest();
         try
@@ -253,8 +285,11 @@ public class WorkItemsController : Controller
         }
         catch (KeyNotFoundException) { return NotFound(); }
         catch (InvalidOperationException ex) { TempData["ErrorMessage"] = ex.Message; }
-        return RedirectToAction(nameof(Details), new { id });
+        return RedirectToAction(nameof(Details), new { id, returnUrl = SafeReturnUrl(returnUrl) });
     }
+
+    private string? SafeReturnUrl(string? value) =>
+        value is { Length: <= 4096 } && Url.IsLocalUrl(value) ? value : null;
 
     private async Task<List<SelectListItem>> ManagedProjectsAsync()
     {
@@ -269,9 +304,11 @@ public class WorkItemsController : Controller
         return members.Select(x => new SelectListItem(x.FullName, x.Id.ToString())).ToList();
     }
 
-    private async Task<bool> LoadCreateAsync(CreateWorkItemViewModel model)
+    private async Task<bool> LoadCreateAsync(CreateWorkItemViewModel model, bool selectSingleProject = false)
     {
         model.Projects = await ManagedProjectsAsync();
+        if (selectSingleProject && model.ProjectId is null && model.Projects.Count == 1)
+            model.ProjectId = int.Parse(model.Projects[0].Value, System.Globalization.CultureInfo.InvariantCulture);
         model.Members = new();
         if (model.ProjectId is not > 0) return true;
         if (!model.Projects.Any(x => x.Value == model.ProjectId.Value.ToString())) return false;
@@ -279,9 +316,11 @@ public class WorkItemsController : Controller
         return true;
     }
 
-    private async Task<bool> LoadAssignAsync(AssignWorkItemViewModel model)
+    private async Task<bool> LoadAssignAsync(AssignWorkItemViewModel model, bool selectSingleProject = false)
     {
         model.Projects = await ManagedProjectsAsync();
+        if (selectSingleProject && model.ProjectId is null && model.Projects.Count == 1)
+            model.ProjectId = int.Parse(model.Projects[0].Value, System.Globalization.CultureInfo.InvariantCulture);
         model.WorkItems = new(); model.Members = new();
         if (model.ProjectId is not > 0) return true;
         if (!model.Projects.Any(x => x.Value == model.ProjectId.Value.ToString())) return false;

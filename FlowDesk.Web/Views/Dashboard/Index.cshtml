@@ -1,0 +1,301 @@
+@using System.Globalization
+@using FlowDesk.Application.DTOs.WorkItems
+@using FlowDesk.Domain.Enums
+@using static FlowDesk.Web.Formatting.FlowDeskFormat
+@using FlowDesk.Application.DTOs.Dashboard
+@using FlowDesk.Domain.Entities
+@using FlowDesk.Web.ViewModels.WorkItems
+@model ManagementDashboardDto
+
+@{
+    ViewData["Title"] = "داشبورد مدیریتی";
+    string reportName = Model.Projects.FirstOrDefault(p => p.Id == Model.SelectedProjectId)?.Name
+        ?? "همهٔ پروژه‌های تحت مدیریت";
+    var counts = Model.Counts;
+    string returnUrl = $"{Context.Request.PathBase}{Context.Request.Path}{Context.Request.QueryString}";
+    var statuses = new (string Title, int Count, string Tone)[]
+    {
+        ("انجام‌شده", counts.Done, "done"),
+        ("در حال انجام", counts.InProgress, "in-progress"),
+        ("انجام‌نشده", counts.ToDo, "todo")
+    };
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/dashboard.css" asp-append-version="true" />
+}
+
+<div class="management-dashboard">
+    <header class="dash-intro">
+        <div>
+            <h1>داشبورد مدیریتی</h1>
+            <p>پیشرفت پروژه‌ها، حجم کار تیم و مهلت تسک‌ها</p>
+        </div>
+        <span class="dash-today">امروز <time datetime="@IsoDate(Model.Today)">@PersianDate(Model.Today)</time></span>
+    </header>
+
+    @if (Model.Projects.Count == 0)
+    {
+        <section class="dash-panel dash-empty" aria-labelledby="dashboard-empty-title">
+            <h2 id="dashboard-empty-title">هنوز مدیر هیچ پروژه‌ای نیستید</h2>
+            <p>گزارش‌های این صفحه فقط برای پروژه‌هایی است که مدیریت می‌کنید. کارهای واگذارشده به شما در «تسک‌های من» هستند.</p>
+            <div class="d-flex flex-wrap gap-2">
+                <a asp-controller="Projects" asp-action="Create" class="btn btn-primary">ایجاد پروژه</a>
+                <a asp-controller="WorkItems" asp-action="Index" asp-route-OnlyMine="true" class="btn btn-outline-secondary">تسک‌های من</a>
+            </div>
+        </section>
+    }
+    else
+    {
+        <section class="dash-toolbar" aria-label="محدودهٔ گزارش">
+            <form asp-action="Index" method="get" class="dash-filter">
+                <div>
+                    <label for="projectId" class="form-label">پروژه</label>
+                    <select id="projectId" name="projectId" class="form-select">
+                        <option value="">همهٔ پروژه‌های تحت مدیریت</option>
+                        @foreach (var project in Model.Projects)
+                        {
+                            <option value="@project.Id" selected="@(project.Id == Model.SelectedProjectId)">@project.Name</option>
+                        }
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary">نمایش گزارش</button>
+            </form>
+            <div class="d-flex flex-wrap gap-2">
+                <a asp-controller="WorkItems" asp-action="Create" asp-route-projectId="@Model.SelectedProjectId" class="btn btn-outline-primary">ایجاد تسک</a>
+                @if (Model.SelectedProjectId.HasValue)
+                {
+                    <a asp-controller="ProjectMembers" asp-action="Index" asp-route-projectId="@Model.SelectedProjectId" class="btn btn-outline-secondary">اعضای پروژه</a>
+                }
+                <a asp-controller="Projects" asp-action="Index" class="btn btn-outline-secondary">فهرست پروژه‌ها</a>
+            </div>
+        </section>
+
+        <section aria-labelledby="dashboard-summary" class="dash-overview">
+            <h2 id="dashboard-summary"><bdi>@reportName</bdi></h2>
+            <dl class="dash-metrics">
+                <div class="dash-card">
+                    <dt>کل تسک‌ها</dt>
+                    <dd>@Number(counts.Total)</dd>
+                    <small>تسک‌های خارج از بایگانی</small>
+                    <div class="small mt-1"><a asp-controller="WorkItems" asp-action="Index" asp-route-ManagedOnly="true" asp-route-ProjectId="@Model.SelectedProjectId" aria-label="دیدن همهٔ تسک‌های تحت مدیریت">دیدن فهرست</a></div>
+                </div>
+                <div class="dash-card dash-card-good">
+                    <dt>انجام‌شده</dt>
+                    <dd>@Number(counts.Done)</dd>
+                    <small>@Number(counts.CompletionPercent)٪ از کل</small>
+                    <div class="small mt-1"><a asp-controller="WorkItems" asp-action="Index" asp-route-ManagedOnly="true" asp-route-ProjectId="@Model.SelectedProjectId" asp-route-Status="@WorkItemStatus.Done" aria-label="دیدن تسک‌های انجام‌شده">دیدن فهرست</a></div>
+                </div>
+                <div class="dash-card">
+                    <dt>در حال انجام</dt>
+                    <dd>@Number(counts.InProgress)</dd>
+                    <small>@Number(counts.ToDo) تسک هنوز شروع نشده</small>
+                    <div class="small mt-1"><a asp-controller="WorkItems" asp-action="Index" asp-route-ManagedOnly="true" asp-route-ProjectId="@Model.SelectedProjectId" asp-route-Status="@WorkItemStatus.InProgress" aria-label="دیدن تسک‌های در حال انجام">دیدن فهرست</a></div>
+                </div>
+                <div class="dash-card @(counts.Overdue > 0 ? "dash-card-warning" : null)">
+                    <dt>عقب‌افتاده</dt>
+                    <dd>@Number(counts.Overdue)</dd>
+                    <small>تسک‌های باز با مهلت گذشته</small>
+                    <div class="small mt-1"><a asp-controller="WorkItems" asp-action="Index" asp-route-ManagedOnly="true" asp-route-ProjectId="@Model.SelectedProjectId" asp-route-Focus="@WorkItemFocus.Overdue" aria-label="دیدن تسک‌های عقب‌افتاده">دیدن فهرست</a></div>
+                </div>
+                <div class="dash-card">
+                    <dt>بدون مسئول</dt>
+                    <dd>@Number(counts.Unassigned)</dd>
+                    <small>تسک‌های بازِ واگذارنشده</small>
+                    <div class="small mt-1"><a asp-controller="WorkItems" asp-action="Index" asp-route-ManagedOnly="true" asp-route-ProjectId="@Model.SelectedProjectId" asp-route-Focus="@WorkItemFocus.Unassigned" aria-label="دیدن تسک‌های بدون مسئول">دیدن فهرست</a></div>
+                </div>
+            </dl>
+        </section>
+
+        <div class="dash-columns">
+            <section class="dash-panel" aria-labelledby="dashboard-status">
+                <div class="dash-section-heading">
+                    <h2 id="dashboard-status">ترکیب وضعیت تسک‌ها</h2>
+                </div>
+                @if (counts.Total == 0)
+                {
+                    <p class="dash-empty-note">هنوز تسکی خارج از بایگانی برای این گزارش وجود ندارد.</p>
+                }
+                else
+                {
+                    <div class="dash-statuses">
+                        @foreach (var status in statuses)
+                        {
+                            <div class="dash-status-row">
+                                <div><span>@status.Title</span><strong>@Number(status.Count)</strong></div>
+                                <progress class="dash-progress @status.Tone" value="@status.Count" max="@counts.Total" aria-label="@status.Title">@Number(status.Count)</progress>
+                            </div>
+                        }
+                    </div>
+                }
+            </section>
+
+            <section class="dash-panel" aria-labelledby="dashboard-progress">
+                <div class="dash-section-heading">
+                    <h2 id="dashboard-progress">پیشرفت پروژه‌ها</h2>
+                    <p>نسبت تسک‌های انجام‌شده به کل تسک‌های خارج از بایگانی</p>
+                </div>
+                <ul class="dash-project-list">
+                    @foreach (var row in Model.Progress)
+                    {
+                        <li>
+                            <div class="dash-project-row">
+                                <a asp-controller="WorkItems" asp-action="Index" asp-route-projectId="@row.Id" asp-route-ManagedOnly="true" aria-label="تسک‌های پروژهٔ @row.Name"><bdi>@row.Name</bdi></a>
+                                @if (row.Counts.Total > 0)
+                                {
+                                    <strong>@Number(row.Counts.CompletionPercent)٪</strong>
+                                }
+                            </div>
+                            @if (row.Counts.Total > 0)
+                            {
+                                <progress class="dash-progress done" value="@row.Counts.Done" max="@row.Counts.Total" aria-label="پیشرفت @row.Name">@Number(row.Counts.CompletionPercent)٪</progress>
+                                <small>@Number(row.Counts.Done) از @Number(row.Counts.Total) انجام شده</small>
+                            }
+                            else
+                            {
+                                <small>تسکی خارج از بایگانی ندارد</small>
+                            }
+                        </li>
+                    }
+                </ul>
+            </section>
+        </div>
+
+        <section class="dash-panel" aria-labelledby="dashboard-deadlines">
+            <div class="dash-section-heading">
+                <h2 id="dashboard-deadlines">مهلت‌های تسک‌ها</h2>
+                <p>تا ۸ تسک باز که مهلت دارند، به ترتیب زودترین موعد</p>
+                @if (Model.Deadlines.Count > 0)
+                {
+                    <a asp-controller="WorkItems" asp-action="Index" asp-route-ManagedOnly="true"
+                       asp-route-ProjectId="@Model.SelectedProjectId" asp-route-Focus="@WorkItemFocus.WithDeadline"
+                       class="small">دیدن همهٔ تسک‌های مهلت‌دار</a>
+                }
+            </div>
+            @if (Model.Deadlines.Count == 0)
+            {
+                <p class="dash-empty-note">هیچ تسک بازی با مهلت ثبت‌شده وجود ندارد.</p>
+            }
+            else
+            {
+                <div class="dash-table-wrap">
+                    <table class="dash-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">تسک</th>
+                                <th scope="col">مسئول</th>
+                                <th scope="col">مهلت</th>
+                                <th scope="col">اولویت</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var row in Model.Deadlines)
+                            {
+                                <tr>
+                                    <th scope="row">
+                                        <a asp-controller="WorkItems" asp-action="Details" asp-route-id="@row.WorkItemId" asp-route-returnUrl="@returnUrl"><bdi>@row.Title</bdi></a>
+                                        <small><bdi>@row.ProjectName</bdi></small>
+                                    </th>
+                                    <td><bdi>@(row.AssigneeName ?? "بدون مسئول")</bdi></td>
+                                    <td>
+                                        <time class="dash-date" datetime="@IsoDate(row.DueDate)">@PersianDate(row.DueDate)</time>
+                                        @if (row.DueDate < Model.Today)
+                                        {
+                                            <span class="dash-badge danger">عقب‌افتاده</span>
+                                        }
+                                        else if (row.DueDate == Model.Today)
+                                        {
+                                            <span class="dash-badge today">امروز</span>
+                                        }
+                                    </td>
+                                    <td>@WorkItemLabels.Priority(row.Priority)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </section>
+
+        <div class="dash-columns">
+            <section class="dash-panel" aria-labelledby="dashboard-workload">
+                <div class="dash-section-heading">
+                    <h2 id="dashboard-workload">بار کاری اعضا</h2>
+                    <p>تا ۸ نفر با بیشترین تعداد تسک باز در پروژه‌های این گزارش</p>
+                </div>
+                @if (Model.Workload.Count == 0)
+                {
+                    <p class="dash-empty-note">هیچ تسک بازی به اعضا واگذار نشده است.</p>
+                }
+                else
+                {
+                    <div class="dash-table-wrap">
+                        <table class="dash-table">
+                            <thead>
+                                <tr>
+                                    <th scope="col">عضو</th>
+                                    <th scope="col">شروع‌نشده</th>
+                                    <th scope="col">در حال انجام</th>
+                                    <th scope="col">عقب‌افتاده</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var row in Model.Workload)
+                                {
+                                    <tr>
+                                        <th scope="row"><bdi>@row.MemberName</bdi></th>
+                                        <td>@Number(row.ToDo)</td>
+                                        <td>@Number(row.InProgress)</td>
+                                        <td>@Number(row.Overdue)</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </section>
+
+            <section class="dash-panel" aria-labelledby="dashboard-activity">
+                <div class="dash-section-heading">
+                    <h2 id="dashboard-activity">آخرین فعالیت‌ها</h2>
+                </div>
+                @if (Model.Activity.Count == 0)
+                {
+                    <p class="dash-empty-note">هنوز فعالیتی برای این گزارش ثبت نشده است.</p>
+                }
+                else
+                {
+                    <ol class="dash-activity-list">
+                        @foreach (var entry in Model.Activity)
+                        {
+                            <li>
+                                <div>
+                                    <span>@ActivityLabel(entry.Kind)</span>
+                                    <a asp-controller="WorkItems" asp-action="Details" asp-route-id="@entry.WorkItemId" asp-route-returnUrl="@returnUrl"><bdi>@entry.Title</bdi></a>
+                                    <small><bdi>@entry.ProjectName</bdi></small>
+                                </div>
+                                <time datetime="@entry.OccurredAtUtc.ToString("O", CultureInfo.InvariantCulture)">@TehranDateTime(entry.OccurredAtUtc)</time>
+                            </li>
+                        }
+                    </ol>
+                }
+            </section>
+        </div>
+    }
+</div>
+
+@functions {
+    private static string ActivityLabel(WorkItemActivityKind kind) => kind switch
+    {
+        WorkItemActivityKind.Created => "ایجاد تسک",
+        WorkItemActivityKind.Edited => "ویرایش تسک",
+        WorkItemActivityKind.Reassigned => "تغییر مسئول",
+        WorkItemActivityKind.Started => "شروع تسک",
+        WorkItemActivityKind.Completed => "تکمیل تسک",
+        WorkItemActivityKind.Reopened => "بازگشایی تسک",
+        WorkItemActivityKind.Archived => "انتقال به بایگانی",
+        WorkItemActivityKind.Restored => "بازگشت از بایگانی",
+        WorkItemActivityKind.Comment => "ثبت دیدگاه",
+        _ => "به‌روزرسانی تسک"
+    };
+}

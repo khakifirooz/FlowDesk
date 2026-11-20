@@ -43,7 +43,7 @@ public class ProjectService : IProjectService
 
     public async Task<List<ProjectListItemDto>> GetAllAsync()
     {
-        var scope = await _access.GetScopeAsync();
+        var scope = await _access.GetViewScopeAsync();
         var ids = scope.VisibleProjectIds;
         var projects = await _projectRepository.FindAsync(x => ids.Contains(x.Id));
 

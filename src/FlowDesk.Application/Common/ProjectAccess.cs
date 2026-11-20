@@ -47,6 +47,10 @@ public sealed class ProjectAccess
         _currentUser = currentUser;
     }
 
+    private Task<ProjectScope>? _viewScope;
+
+    public Task<ProjectScope> GetViewScopeAsync() => _viewScope ??= GetScopeAsync();
+
     public async Task<ProjectScope> GetScopeAsync()
     {
         string userId = _currentUser.UserId

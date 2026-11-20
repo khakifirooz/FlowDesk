@@ -8,6 +8,8 @@ namespace FlowDesk.Web.ViewModels.WorkItems;
 
 public class AssignWorkItemViewModel
 {
+    public string? ReturnUrl { get; set; }
+
     [Required(ErrorMessage = "یک پروژه انتخاب کنید.")]
     [Range(
         1,

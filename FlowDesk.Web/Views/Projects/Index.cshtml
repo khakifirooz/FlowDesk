@@ -79,8 +79,9 @@
                                 @project.Id
                             </td>
 
-                            <td class="item-title">
-                                @project.Name
+                            <td>
+                                <div class="item-title text-break"><bdi>@project.Name</bdi></div>
+                                <small class="text-muted">@(project.CanManage ? "مدیر پروژه" : "عضو پروژه")</small>
                             </td>
 
                             <td>
@@ -101,19 +102,10 @@
 
                                     @if (project.CanManage)
                                     {
-                                    <a asp-controller="WorkItems"
-                                       asp-action="Assign"
-                                       asp-route-id=""
-                                       asp-route-projectId="@project.Id"
-                                       class="btn btn-sm btn-outline-primary">
-                                        واگذاری کار
-                                    </a>
-
-                                    <a asp-action="Edit"
-                                       asp-route-id="@project.Id"
-                                       class="btn btn-sm btn-outline-secondary">
-                                        ویرایش نام
-                                    </a>
+                                        <a asp-controller="Dashboard" asp-action="Index"
+                                           asp-route-projectId="@project.Id" class="btn btn-sm btn-outline-primary">گزارش</a>
+                                        <a asp-action="Edit" asp-route-id="@project.Id"
+                                           class="btn btn-sm btn-outline-secondary">ویرایش نام</a>
                                     }
                                 </div>
                             </td>

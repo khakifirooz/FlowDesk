@@ -1,4 +1,6 @@
+@using FlowDesk.Application.Common
 @using FlowDesk.Infrastructure.Identity
+@inject ProjectAccess WorkspaceAccess
 @using Microsoft.AspNetCore.Identity
 @inject UserManager<ApplicationUser> AccountManager
 
@@ -6,25 +8,21 @@
     string? currentController =
         ViewContext.RouteData.Values["controller"]?.ToString();
 
-    string? currentAction =
-        ViewContext.RouteData.Values["action"]?.ToString();
+    bool dashboardActive = currentController == "Dashboard";
 
     bool projectsActive =
         currentController is "Projects" or "ProjectMembers";
 
-    bool tasksActive =
-        currentController == "WorkItems" &&
-        currentAction != "Assign";
-
-    bool assignActive =
-        currentController == "WorkItems" &&
-        currentAction == "Assign";
+    bool tasksActive = currentController == "WorkItems";
 
     bool membersActive =
         currentController == "TeamMembers";
 
     bool signedIn = User.Identity?.IsAuthenticated == true;
     var account = signedIn ? await AccountManager.GetUserAsync(User) : null;
+    bool canManageProjects = account is not null && (await WorkspaceAccess.GetViewScopeAsync()).ManagedProjectIds.Count > 0;
+    bool myTasksActive = tasksActive &&
+        bool.TryParse(Context.Request.Query["OnlyMine"], out bool onlyMine) && onlyMine;
     string displayName = account is not null && !string.IsNullOrWhiteSpace(account.FullName)
         ? account.FullName
         : "حساب کاربری";
@@ -46,6 +44,8 @@
     <link rel="stylesheet"
           href="~/css/site.css"
           asp-append-version="true" />
+
+    @await RenderSectionAsync("Styles", required: false)
 </head>
 
 <body>
@@ -54,7 +54,7 @@
     </a>
 
     <header class="app-header">
-        <nav class="navbar navbar-expand-lg"
+        <nav class="navbar navbar-expand-xl"
              aria-label="منوی اصلی">
 
             <div class="container">
@@ -72,21 +72,31 @@
                     </span>
                 </a>
 
-                <button class="navbar-toggler"
-                        type="button"
-                        data-bs-toggle="collapse"
-                        data-bs-target="#main-nav"
-                        aria-controls="main-nav"
-                        aria-expanded="false"
-                        aria-label="باز کردن منو">
+                @if (signedIn)
+                {
+                    <button class="navbar-toggler"
+                            type="button"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#main-nav"
+                            aria-controls="main-nav"
+                            aria-expanded="false"
+                            aria-label="باز کردن منو">
 
-                    <span class="navbar-toggler-icon"></span>
-                </button>
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
 
-                <div class="collapse navbar-collapse" id="main-nav">
-                    @if (signedIn)
-                    {
-                        <div class="navbar-nav ms-auto gap-lg-1">
+                    <div class="collapse navbar-collapse" id="main-nav">
+                        <div class="navbar-nav ms-auto gap-xl-1">
+
+                            @if (canManageProjects)
+                            {
+                                <a class="nav-link @(dashboardActive ? "active" : "")"
+                               asp-controller="Dashboard"
+                               asp-action="Index"
+                               aria-current="@(dashboardActive ? "page" : null)">
+                                    داشبورد
+                                </a>
+                            }
 
                             <a class="nav-link @(projectsActive ? "active" : "")"
                                asp-controller="Projects"
@@ -95,34 +105,30 @@
                                 پروژه‌ها
                             </a>
 
-                            <a class="nav-link @(tasksActive ? "active" : "")"
+                            <a class="nav-link @(tasksActive && !myTasksActive ? "active" : "")"
                                asp-controller="WorkItems"
                                asp-action="Index"
-                               aria-current="@(tasksActive ? "page" : null)">
+                               aria-current="@(tasksActive && !myTasksActive ? "page" : null)">
                                 تسک‌ها
                             </a>
 
-                            <a class="nav-link" asp-controller="WorkItems" asp-action="Index"
-                               asp-route-OnlyMine="true">تسک‌های من</a>
+                            <a class="nav-link @(myTasksActive ? "active" : "")"
+                               asp-controller="WorkItems" asp-action="Index" asp-route-OnlyMine="true"
+                               aria-current="@(myTasksActive ? "page" : null)">تسک‌های من</a>
 
-                            <a class="nav-link @(assignActive ? "active" : "")"
-                               asp-controller="WorkItems"
-                               asp-action="Assign"
-                               asp-route-id=""
-                               aria-current="@(assignActive ? "page" : null)">
-                                واگذاری تسک
-                            </a>
-
-                            <a class="nav-link @(membersActive ? "active" : "")"
-                               asp-controller="TeamMembers"
-                               asp-action="Index"
-                               aria-current="@(membersActive ? "page" : null)">
-                                اعضای تیم
-                            </a>
+                            @if (canManageProjects)
+                            {
+                                <a class="nav-link @(membersActive ? "active" : "")"
+                                   asp-controller="TeamMembers"
+                                   asp-action="Index"
+                                   aria-current="@(membersActive ? "page" : null)">
+                                    فهرست افراد تیم
+                                </a>
+                            }
 
                         </div>
 
-                        <div class="d-flex flex-wrap align-items-center gap-3 mt-3 mt-lg-0">
+                        <div class="d-flex flex-wrap align-items-center gap-3 mt-3 mt-xl-0">
                             <span class="small text-muted text-break">
                                 <bdi>@displayName</bdi>
                             </span>
@@ -134,15 +140,15 @@
                                 </button>
                             </form>
                         </div>
-                    }
-                    else
-                    {
-                        <div class="d-flex gap-2 ms-auto mt-3 mt-lg-0">
-                            <a asp-controller="Account" asp-action="Login" class="btn btn-outline-primary">ورود</a>
-                            <a asp-controller="Account" asp-action="Register" class="btn btn-primary">ساخت حساب</a>
-                        </div>
-                    }
-                </div>
+                    </div>
+                }
+                else
+                {
+                    <a class="btn btn-sm btn-outline-secondary ms-auto"
+                       asp-controller="Account" asp-action="Login">
+                        ورود
+                    </a>
+                }
             </div>
         </nav>
     </header>

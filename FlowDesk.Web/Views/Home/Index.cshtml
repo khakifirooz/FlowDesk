@@ -1,5 +1,75 @@
-﻿@{
-    ViewData["Title"] = "خانه";
+﻿@model FlowDesk.Web.ViewModels.Home.WorkspaceHomeViewModel
+
+@{
+    ViewData["Title"] = Model is null ? "خانه" : "فضای کار من";
+}
+
+@if (Model is { } workspace)
+{
+    <div class="page-head">
+        <div>
+            <h1>فضای کار من</h1>
+            <p>@(workspace.ManagesProjects ? "کارهای خودت و وضعیت پروژه‌هایی را که مدیریت می‌کنی از اینجا دنبال کن."
+                : workspace.BelongsToProject ? "کارهای واگذارشده و پروژه‌هایی را که در آن‌ها عضو هستی ببین."
+                : "برای شروع می‌توانی پروژهٔ خودت را بسازی یا از مدیر تیم دعوت‌نامه بگیری.")</p>
+        </div>
+    </div>
+
+    <div class="row row-cols-1 row-cols-md-2 g-3">
+        @if (workspace.BelongsToProject)
+        {
+            <div class="col">
+                <section class="panel panel-pad h-100">
+                    <h2>تسک‌های من</h2>
+                    <p>کارهایی که به حساب تو واگذار شده‌اند.</p>
+                    <div class="d-flex flex-wrap gap-2">
+                        <a asp-controller="WorkItems" asp-action="Index" asp-route-OnlyMine="true" class="btn btn-primary">دیدن تسک‌ها</a>
+                        <a asp-controller="WorkItems" asp-action="Index" asp-route-OnlyMine="true" asp-route-Focus="Overdue" class="btn btn-outline-secondary">عقب‌افتاده‌های من</a>
+                    </div>
+                </section>
+            </div>
+        }
+        @if (workspace.ManagesProjects)
+        {
+            <div class="col">
+                <section class="panel panel-pad h-100">
+                    <h2>مدیریت پروژه‌ها</h2>
+                    <p>پیشرفت پروژه‌ها و موارد نیازمند پیگیری.</p>
+                    <div class="d-flex flex-wrap gap-2">
+                        <a asp-controller="Dashboard" asp-action="Index" class="btn btn-primary">داشبورد مدیریتی</a>
+                        <a asp-controller="WorkItems" asp-action="Create" class="btn btn-outline-secondary">ایجاد تسک</a>
+                    </div>
+                </section>
+            </div>
+        }
+        @if (workspace.ManagesProjects || workspace.BelongsToProject)
+        {
+            <div class="col">
+                <section class="panel panel-pad h-100">
+                    <h2>پروژه‌های من</h2>
+                    <p>تسک‌ها و اعضای هر پروژه را یک‌جا پیدا کن.</p>
+                    <a asp-controller="Projects" asp-action="Index" class="btn btn-outline-primary">دیدن پروژه‌ها</a>
+                </section>
+            </div>
+        }
+        else
+        {
+            <div class="col">
+                <section class="panel panel-pad h-100">
+                    <h2>اولین پروژه‌ات را بساز</h2>
+                    <p>بعد از ساخت پروژه می‌توانی اعضا را اضافه کنی و تسک بدهی.</p>
+                    <a asp-controller="Projects" asp-action="Create" class="btn btn-primary">ایجاد پروژه</a>
+                </section>
+            </div>
+            <div class="col">
+                <section class="panel panel-pad h-100">
+                    <h2>به تیمی دعوت شده‌ای؟</h2>
+                    <p class="mb-0">لینکی را که مدیر پروژه فرستاده باز کن و با همین حساب دعوت را بپذیر.</p>
+                </section>
+            </div>
+        }
+    </div>
+    return;
 }
 
 <section class="hero mb-4">
@@ -15,11 +85,44 @@
         وضعیت کارهای تیم را در یک جا دنبال کنید.
     </p>
 
-    <a asp-controller="Projects"
-       asp-action="Index"
-       class="btn btn-light">
-        مشاهدهٔ پروژه‌ها
-    </a>
+    <div class="d-flex flex-wrap gap-2">
+        <a href="#workspace-preview" class="btn btn-light">دیدن محیط کار</a>
+        <a asp-controller="Projects" asp-action="Create" class="btn btn-outline-light">ایجاد پروژه</a>
+    </div>
+</section>
+
+<section id="workspace-preview" class="panel panel-pad mb-4" tabindex="-1" aria-labelledby="workspace-preview-title">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+        <div>
+            <span class="eyebrow">نمای نمونه</span>
+            <h2 id="workspace-preview-title" class="mb-1">تسک‌های یک پروژه در FlowDesk</h2>
+            <p class="mb-0">پروژهٔ فرضی «طراحی فروشگاه» با سه تسک نمونه.</p>
+        </div>
+    </div>
+
+    <ul class="row row-cols-1 row-cols-md-3 g-3 list-unstyled mb-0">
+        <li class="col">
+            <div class="border rounded-3 h-100 p-3">
+                <span class="status status-todo mb-2">انجام‌نشده</span>
+                <h3 class="mb-1">طراحی صفحهٔ محصولات</h3>
+                <p class="small mb-0">مسئول: نازنین</p>
+            </div>
+        </li>
+        <li class="col">
+            <div class="border rounded-3 h-100 p-3">
+                <span class="status status-progress mb-2">در حال انجام</span>
+                <h3 class="mb-1">آماده‌سازی سبد خرید</h3>
+                <p class="small mb-0">مسئول: امیر</p>
+            </div>
+        </li>
+        <li class="col">
+            <div class="border rounded-3 h-100 p-3">
+                <span class="status status-done mb-2">انجام‌شده</span>
+                <h3 class="mb-1">تعریف دسته‌بندی‌ها</h3>
+                <p class="small mb-0">مسئول: مریم</p>
+            </div>
+        </li>
+    </ul>
 </section>
 
 <div class="row g-3">
@@ -50,9 +153,9 @@
                 افراد را ثبت کنید و به پروژه‌های مربوط اضافه کنید.
             </p>
 
-            <a asp-controller="TeamMembers"
+            <a asp-controller="Projects"
                asp-action="Index">
-                مشاهدهٔ اعضا ←
+                پیدا کردن اعضا از فهرست پروژه‌ها ←
             </a>
         </article>
     </div>

@@ -1,9 +1,13 @@
 @using FlowDesk.Domain.Entities
+@using FlowDesk.Domain.Enums
+@using static FlowDesk.Web.Formatting.FlowDeskFormat
 @using FlowDesk.Web.ViewModels.WorkItems
 @model WorkItemDetailsViewModel
 @{
     var item = Model.Details.Item;
     bool archived = item.ArchivedAtUtc.HasValue;
+    bool overdue = !archived && item.Status != WorkItemStatus.Done && item.DueDate < Model.Today;
+    string? currentDetails = Url.Action("Details", new { id = item.Id, returnUrl = Model.BackUrl });
     ViewData["Title"] = item.Title;
 }
 <div class="page-head">
@@ -11,8 +15,15 @@
         <span class="eyebrow">@Model.ProjectName / تسک @item.Id</span>
         <h1 class="text-break">@item.Title</h1>
     </div>
-    <a asp-action="Index" asp-route-ProjectId="@item.ProjectId" asp-route-Archived="@archived"
-       class="btn btn-outline-secondary">تسک‌های پروژه</a>
+    @if (Model.BackUrl is not null)
+    {
+        <a href="@Model.BackUrl" class="btn btn-outline-secondary">بازگشت به صفحهٔ قبل</a>
+    }
+    else
+    {
+        <a asp-action="Index" asp-route-ProjectId="@item.ProjectId" asp-route-Archived="@(archived ? "true" : null)"
+           class="btn btn-outline-secondary">تسک‌های پروژه</a>
+    }
 </div>
 @if (TempData["SuccessMessage"] is string success)
 {
@@ -31,26 +42,47 @@
         <dt class="col-sm-3">مسئول</dt><dd class="col-sm-9">@Model.AssigneeName</dd>
         <dt class="col-sm-3">وضعیت</dt><dd class="col-sm-9">@WorkItemLabels.Status(item.Status)</dd>
         <dt class="col-sm-3">اولویت</dt><dd class="col-sm-9">@WorkItemLabels.Priority(item.Priority)</dd>
-        <dt class="col-sm-3">مهلت (میلادی)</dt><dd class="col-sm-9"><bdi>@(item.DueDate?.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture) ?? "—")</bdi></dd>
+        <dt class="col-sm-3">مهلت</dt>
+        <dd class="col-sm-9">
+            @if (item.DueDate is DateOnly dueDate)
+            {
+                <time dir="ltr" datetime="@IsoDate(dueDate)">@PersianDate(dueDate)</time>
+                @if (overdue) { <span class="status status-progress">عقب‌افتاده</span> }
+                else if (!archived && item.Status != WorkItemStatus.Done && dueDate == Model.Today)
+                { <span class="status status-progress">امروز</span> }
+            }
+            else { <span>بدون مهلت</span> }
+        </dd>
     </dl>
     <h2>شرح تسک</h2>
     <p class="text-break" style="white-space: pre-wrap;">@(item.Description ?? "هنوز شرحی برای این تسک نوشته نشده است.")</p>
-    @if (item.CanManage)
-    {
-        <div class="d-flex flex-wrap gap-2">
+    <div class="d-flex flex-wrap gap-2">
+        @if (item.CanChangeStatus)
+        {
+            var next = WorkItemLabels.NextStatus(item.Status);
+            <form asp-action="ChangeStatus" method="post" data-prevent-double-submit>
+                <input type="hidden" name="id" value="@item.Id" />
+                <input type="hidden" name="targetStatus" value="@next.Target" />
+                <input type="hidden" name="returnUrl" value="@currentDetails" />
+                <button class="btn btn-primary" type="submit">@next.Text تسک</button>
+            </form>
+        }
+        @if (item.CanManage)
+        {
             @if (!archived)
             {
-                <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-outline-primary">ویرایش تسک</a>
-                <a asp-action="Assign" asp-route-id="@item.Id" class="btn btn-outline-secondary">تغییر مسئول</a>
+                <a asp-action="Edit" asp-route-id="@item.Id" asp-route-returnUrl="@currentDetails" class="btn btn-outline-primary">ویرایش تسک</a>
+                <a asp-action="Assign" asp-route-id="@item.Id" asp-route-returnUrl="@currentDetails" class="btn btn-outline-secondary">تغییر مسئول</a>
             }
             <form asp-action="SetArchived" method="post" data-prevent-double-submit
                   data-confirm="@(archived ? "تسک به فهرست فعال برگردد؟" : "این تسک بایگانی شود؟")">
                 <input type="hidden" name="id" value="@item.Id" />
+                <input type="hidden" name="returnUrl" value="@Model.BackUrl" />
                 <input type="hidden" name="archived" value="@(!archived ? "true" : "false")" />
                 <button class="btn btn-outline-secondary" type="submit">@(archived ? "بازگردانی" : "بایگانی")</button>
             </form>
-        </div>
-    }
+        }
+    </div>
 </section>
 <section class="panel panel-pad">
     <h2>گفت‌وگو و تاریخچه</h2>
@@ -58,6 +90,7 @@
     {
         <form asp-action="AddComment" method="post" class="mb-4" data-prevent-double-submit>
             <input type="hidden" name="id" value="@item.Id" />
+            <input type="hidden" name="returnUrl" value="@Model.BackUrl" />
             <label for="comment" class="form-label">نظر شما</label>
             <textarea id="comment" name="comment" rows="3" class="form-control" maxlength="1000" required></textarea>
             <button type="submit" class="btn btn-primary mt-2">ثبت نظر</button>
@@ -87,7 +120,7 @@
             <li class="border-top py-3">
                 <div class="d-flex flex-wrap justify-content-between gap-2">
                     <strong class="text-break">@label</strong>
-                    <time class="text-muted small" dir="ltr" datetime="@entry.OccurredAtUtc.ToString("O")">@entry.OccurredAtUtc.ToString("yyyy-MM-dd HH:mm", System.Globalization.CultureInfo.InvariantCulture) UTC</time>
+                    <time class="text-muted small" dir="ltr" datetime="@entry.OccurredAtUtc.ToString("O")">@TehranDateTime(entry.OccurredAtUtc)</time>
                 </div>
                 @if (entry.Message is not null)
                 {
@@ -101,12 +134,12 @@
             <nav aria-label="صفحه‌بندی تاریخچه" class="d-flex flex-wrap align-items-center gap-2">
                 @if (Model.Details.ActivityPage > 1)
                 {
-                    <a asp-action="Details" asp-route-id="@item.Id" asp-route-activityPage="@(Model.Details.ActivityPage - 1)" class="btn btn-outline-secondary">جدیدتر</a>
+                    <a asp-action="Details" asp-route-id="@item.Id" asp-route-returnUrl="@Model.BackUrl" asp-route-activityPage="@(Model.Details.ActivityPage - 1)" class="btn btn-outline-secondary">جدیدتر</a>
                 }
                 <span>صفحهٔ @Model.Details.ActivityPage از @Model.Details.ActivityPages</span>
                 @if (Model.Details.ActivityPage < Model.Details.ActivityPages)
                 {
-                    <a asp-action="Details" asp-route-id="@item.Id" asp-route-activityPage="@(Model.Details.ActivityPage + 1)" class="btn btn-outline-secondary">قدیمی‌تر</a>
+                    <a asp-action="Details" asp-route-id="@item.Id" asp-route-returnUrl="@Model.BackUrl" asp-route-activityPage="@(Model.Details.ActivityPage + 1)" class="btn btn-outline-secondary">قدیمی‌تر</a>
                 }
             </nav>
         }

@@ -5,6 +5,8 @@ namespace FlowDesk.Web.ViewModels.WorkItems;
 
 public class EditWorkItemViewModel
 {
+    public string? ReturnUrl { get; set; }
+
     [Range(1, int.MaxValue)]
     public int Id { get; set; }
 

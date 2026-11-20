@@ -6,6 +6,8 @@ public class WorkItemSearchDto
 {
     public bool OnlyMine { get; set; }
     public bool Archived { get; set; }
+    public bool ManagedOnly { get; set; }
+    public WorkItemFocus? Focus { get; set; }
     public WorkItemPriority? Priority { get; set; }
     public string? SearchText { get; set; }
     public int? ProjectId { get; set; }

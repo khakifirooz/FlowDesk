@@ -17,12 +17,15 @@
     </div>
 
     <div class="d-flex flex-wrap gap-2">
-        @if (Model.CanManageMembers)
+        @if (Model.CanManageMembers && Model.Members.Count > 0)
         {
-            <a asp-controller="WorkItems" asp-action="Assign"
-               asp-route-id="" asp-route-projectId="@Model.ProjectId"
-               class="btn btn-primary">واگذاری تسک</a>
+            <a asp-controller="WorkItems" asp-action="Create"
+               asp-route-projectId="@Model.ProjectId" class="btn btn-primary">ایجاد تسک</a>
+            <a asp-controller="WorkItems" asp-action="Assign" asp-route-projectId="@Model.ProjectId"
+               class="btn btn-outline-secondary">واگذاری تسک</a>
         }
+        <a asp-controller="WorkItems" asp-action="Index"
+           asp-route-projectId="@Model.ProjectId" class="btn btn-outline-primary">تسک‌های پروژه</a>
 
         <a asp-controller="Projects" asp-action="Index"
            class="btn btn-outline-secondary">بازگشت به پروژه‌ها</a>
@@ -80,9 +83,9 @@
                 else
                 {
                     <p>فرد دیگری برای افزودن به پروژه وجود ندارد.</p>
-                    <a asp-controller="TeamMembers" asp-action="Create"
-                       class="btn btn-outline-primary">ثبت فرد جدید</a>
                 }
+                <a asp-controller="TeamMembers" asp-action="Create" asp-route-projectId="@Model.ProjectId"
+                   class="btn btn-outline-primary mt-3">ثبت فرد جدید</a>
             </section>
         </div>
     }
@@ -98,6 +101,10 @@
             {
                 <div class="empty-state">
                     <h2>هنوز عضوی به این پروژه اضافه نشده است</h2>
+                    @if (Model.CanManageMembers)
+                    {
+                        <p class="mb-0">برای ساخت اولین تسک، ابتدا دست‌کم یک نفر را به پروژه اضافه کنید.</p>
+                    }
                 </div>
             }
             else

@@ -1,15 +1,25 @@
 using System.Diagnostics;
+using FlowDesk.Application.Common;
 using FlowDesk.Web.Models;
+using FlowDesk.Web.ViewModels.Home;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FlowDesk.Web.Controllers;
 
-public class HomeController : Controller
+public class HomeController(ProjectAccess access) : Controller
 {
-    public IActionResult Index()
+    [AllowAnonymous]
+    [AcceptVerbs("GET", "HEAD")]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+    public async Task<IActionResult> Index()
     {
-        return View();
+        if (User.Identity?.IsAuthenticated != true)
+            return View();
+
+        var scope = await access.GetViewScopeAsync();
+        return View(new WorkspaceHomeViewModel(
+            scope.ManagedProjectIds.Count > 0, scope.OwnMembershipIds.Count > 0));
     }
 
     public IActionResult Privacy()

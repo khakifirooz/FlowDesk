@@ -2,6 +2,9 @@
 
 @{
     ViewData["Title"] = "ثبت عضو تیم";
+    string? backUrl = Model.ProjectId.HasValue
+        ? Url.Action("Index", "ProjectMembers", new { projectId = Model.ProjectId })
+        : Url.Action("Index");
 }
 
 <div class="page-head">
@@ -15,7 +18,7 @@
         </p>
     </div>
 
-    <a asp-action="Index" class="btn btn-outline-secondary">
+    <a href="@backUrl" class="btn btn-outline-secondary">
         بازگشت به فهرست
     </a>
 </div>
@@ -26,6 +29,7 @@
           method="post"
           data-prevent-double-submit>
 
+        <input asp-for="ProjectId" type="hidden" />
         <div asp-validation-summary="ModelOnly"></div>
 
         <div class="mb-4">
@@ -50,7 +54,7 @@
                 ثبت عضو
             </button>
 
-            <a asp-action="Index" class="btn btn-outline-secondary">
+            <a href="@backUrl" class="btn btn-outline-secondary">
                 انصراف
             </a>
         </div>

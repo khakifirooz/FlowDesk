@@ -78,10 +78,16 @@ public class WorkItemService : IWorkItemService
 
         if (input.Priority.HasValue && !Enum.IsDefined(input.Priority.Value))
             throw new ArgumentException("اولویت معتبر نیست.");
-        var scope = await _access.GetScopeAsync();
-        if (input.ProjectId.HasValue) scope.RequireView(input.ProjectId.Value);
+        var scope = await _access.GetViewScopeAsync();
+        if (input.Focus.HasValue && (!Enum.IsDefined(input.Focus.Value) || input.Archived))
+            throw new ArgumentException("فیلتر انتخاب‌شده برای این فهرست معتبر نیست.");
+        if (input.ProjectId is int requestedProject)
+        {
+            if (input.ManagedOnly) scope.RequireManager(requestedProject);
+            else scope.RequireView(requestedProject);
+        }
 
-        var ids = scope.VisibleProjectIds;
+        var ids = input.ManagedOnly ? scope.ManagedProjectIds : scope.VisibleProjectIds;
         var ownIds = scope.OwnMembershipIds;
         string searchText = TextRules.Normalize(input.SearchText);
         if (searchText.Length > TextRules.NameMaxLength)
@@ -111,15 +117,36 @@ public class WorkItemService : IWorkItemService
             predicate = And(predicate, containsTerm);
         }
 
+        if (input.Focus is { } focus)
+        {
+            DateOnly today = FlowDeskCalendar.Today(_clock);
+            DateOnly weekEnd = today.AddDays(6);
+            Expression<Func<WorkItem, bool>> attention = focus switch
+            {
+                WorkItemFocus.Overdue => item => item.DueDate < today,
+                WorkItemFocus.DueToday => item => item.DueDate == today,
+                WorkItemFocus.NextSevenDays => item => item.DueDate >= today && item.DueDate <= weekEnd,
+                WorkItemFocus.WithDeadline => item => item.DueDate != null,
+                WorkItemFocus.Unassigned => item => item.AssignedProjectMemberId == null,
+                _ => throw new ArgumentOutOfRangeException(nameof(input.Focus))
+            };
+            predicate = And(And(predicate, item => item.Status != WorkItemStatus.Done), attention);
+        }
+
         int totalCount = await _items.CountAsync(predicate);
         int totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize));
         int pageNumber = Math.Clamp(input.PageNumber, 1, totalPages);
-        var items = await _items.GetPageAsync(predicate, pageNumber, pageSize);
+        var items = totalCount == 0
+            ? new List<WorkItem>()
+            : input.Focus is WorkItemFocus.Overdue or WorkItemFocus.DueToday
+                or WorkItemFocus.NextSevenDays or WorkItemFocus.WithDeadline
+                ? await _items.GetPageOrderedAsync(predicate, item => item.DueDate, pageNumber, pageSize)
+                : await _items.GetPageAsync(predicate, pageNumber, pageSize);
 
         int? personalCount = null;
         if (onlyMine && totalCount == 0)
         {
-            bool filtersApplied = projectId.HasValue || status.HasValue || priority.HasValue || searchText.Length > 0;
+            bool filtersApplied = projectId.HasValue || status.HasValue || priority.HasValue || input.Focus.HasValue || searchText.Length > 0;
             personalCount = filtersApplied && ownIds.Count > 0
                 ? await _items.CountAsync(scopedTasks)
                 : 0;

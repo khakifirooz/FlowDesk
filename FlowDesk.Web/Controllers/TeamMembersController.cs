@@ -1,4 +1,5 @@
-﻿using FlowDesk.Application.Contracts.Services;
+﻿using FlowDesk.Application.Common;
+using FlowDesk.Application.Contracts.Services;
 using FlowDesk.Application.DTOs.TeamMembers;
 using FlowDesk.Web.ViewModels.TeamMembers;
 using Microsoft.AspNetCore.Mvc;
@@ -8,11 +9,13 @@ namespace FlowDesk.Web.Controllers;
 public class TeamMembersController : Controller
 {
     private readonly ITeamMemberService _teamMemberService;
+    private readonly ProjectAccess _projectAccess;
 
     public TeamMembersController(
-        ITeamMemberService teamMemberService)
+        ITeamMemberService teamMemberService, ProjectAccess projectAccess)
     {
         _teamMemberService = teamMemberService;
+        _projectAccess = projectAccess;
     }
 
     [HttpGet]
@@ -32,9 +35,14 @@ public class TeamMembersController : Controller
     }
 
     [HttpGet]
-    public IActionResult Create()
+    public async Task<IActionResult> Create(int? projectId)
     {
-        return View(new CreateTeamMemberViewModel());
+        if (!ModelState.IsValid || projectId is <= 0)
+            return BadRequest();
+        if (projectId is int id)
+            (await _projectAccess.GetScopeAsync()).RequireManager(id);
+
+        return View(new CreateTeamMemberViewModel { ProjectId = projectId });
     }
 
     [HttpPost]
@@ -42,6 +50,9 @@ public class TeamMembersController : Controller
     public async Task<IActionResult> Create(
         CreateTeamMemberViewModel model)
     {
+        if (model.ProjectId is int requestedProject)
+            (await _projectAccess.GetScopeAsync()).RequireManager(requestedProject);
+
         if (!ModelState.IsValid)
         {
             return View(model);
@@ -55,6 +66,12 @@ public class TeamMembersController : Controller
             };
 
             int id = await _teamMemberService.CreateAsync(input);
+
+            if (model.ProjectId is int projectId)
+            {
+                TempData["SuccessMessage"] = "فرد ثبت شد. او را از فهرست انتخاب و به پروژه اضافه کنید.";
+                return RedirectToAction("Index", "ProjectMembers", new { projectId });
+            }
 
             TempData["SuccessMessage"] =
                 $"عضو جدید با شناسهٔ {id} ثبت شد.";

@@ -1,37 +1,55 @@
+@using FlowDesk.Application.DTOs.WorkItems
 @using FlowDesk.Domain.Enums
 @using FlowDesk.Web.ViewModels.WorkItems
+@using static FlowDesk.Web.Formatting.FlowDeskFormat
 @model FlowDesk.Web.ViewModels.WorkItems.WorkItemIndexViewModel
 @{
-    ViewData["Title"] = Model.Archived
-        ? (Model.OnlyMine ? "تسک‌های بایگانی‌شدهٔ من" : "بایگانی تسک‌ها")
-        : (Model.OnlyMine ? "تسک‌های من" : "تسک‌های پروژه‌ها");
+    ViewData["Title"] = Model.Archived ? $"بایگانی · {Model.ScopeLabel}" : Model.ScopeLabel;
     string returnUrl = $"{Context.Request.PathBase}{Context.Request.Path}{Context.Request.QueryString}";
+    var filterRoute = Model.FilterRoute();
+    var pagingRoute = Model.PagingRoute();
+    var archiveRoute = new Dictionary<string, string>(pagingRoute);
+    archiveRoute.Remove(nameof(Model.Focus));
+    if (Model.Archived) archiveRoute.Remove(nameof(Model.Archived));
+    else archiveRoute[nameof(Model.Archived)] = "true";
+    string? archived = Model.Archived ? "true" : null;
+    var scopeNav = new (string Text, bool Active, string? OnlyMine, string? ManagedOnly)[]
+    {
+        ("همهٔ پروژه‌های من", !Model.ManagedOnly && !Model.OnlyMine, null, null),
+        ("تسک‌های من", Model.OnlyMine && !Model.ManagedOnly, "true", null),
+        ("پروژه‌های تحت مدیریت", Model.ManagedOnly && !Model.OnlyMine, null, "true")
+    };
 }
+
 <div class="page-head">
     <div>
         <h1>@ViewData["Title"]</h1>
-        <p>@(Model.OnlyMine ? "کارهایی که مسئولیت آن‌ها به حساب شما متصل است." : "کارهای پروژه‌هایی که در آن‌ها مدیر یا عضو هستید.")</p>
+        <p>@(Model.OnlyMine ? "کارهایی که مسئولیت آن‌ها به تو واگذار شده است."
+            : Model.ManagedOnly ? "کارهای پروژه‌هایی که مدیریت می‌کنی."
+            : "کارهای پروژه‌هایی که در آن‌ها مدیر یا عضو هستی.")</p>
     </div>
     @if (Model.CanCreate && !Model.Archived)
     {
         <div class="d-flex flex-wrap gap-2">
-            <a asp-action="Create" class="btn btn-primary">ایجاد تسک</a>
-            <a asp-action="Assign" asp-route-id="" class="btn btn-outline-primary">واگذاری تسک</a>
+            <a asp-action="Create" asp-route-projectId="@Model.ProjectId" class="btn btn-primary">ایجاد تسک</a>
+            <a asp-action="Assign" asp-route-id="" asp-route-projectId="@Model.ProjectId" asp-route-returnUrl="@returnUrl" class="btn btn-outline-primary">واگذاری تسک</a>
         </div>
     }
 </div>
-<div class="d-flex flex-wrap gap-2 mb-4">
-    <a asp-action="Index" asp-route-OnlyMine="false" asp-route-Archived="@(Model.Archived ? "true" : null)" class="btn @(Model.OnlyMine ? "btn-outline-secondary" : "btn-secondary")">تسک‌های پروژه‌ها</a>
-    <a asp-action="Index" asp-route-OnlyMine="true" asp-route-Archived="@(Model.Archived ? "true" : null)" class="btn @(Model.OnlyMine ? "btn-secondary" : "btn-outline-secondary")">تسک‌های من</a>
-    @if (Model.Archived)
+
+<nav class="d-flex flex-wrap gap-2 mb-4" aria-label="محدودهٔ تسک‌ها">
+    @foreach (var mode in scopeNav)
     {
-        <a asp-action="Index" asp-route-OnlyMine="@Model.OnlyMine" class="btn btn-outline-secondary">تسک‌های فعال</a>
+        if (mode.ManagedOnly is not null && !Model.HasManagedProjects && !Model.ManagedOnly) { continue; }
+        <a asp-action="Index" asp-route-OnlyMine="@mode.OnlyMine" asp-route-ManagedOnly="@mode.ManagedOnly"
+           asp-route-Archived="@archived" aria-current="@(mode.Active ? "page" : null)"
+           class="btn @(mode.Active ? "btn-secondary" : "btn-outline-secondary")">@mode.Text</a>
     }
-    else
-    {
-        <a asp-action="Index" asp-route-OnlyMine="@Model.OnlyMine" asp-route-Archived="true" class="btn btn-outline-secondary">بایگانی</a>
-    }
-</div>
+    <a asp-action="Index" asp-all-route-data="@archiveRoute" class="btn btn-outline-secondary">
+        @(Model.Archived ? "بازگشت به تسک‌های فعال" : "بایگانی")
+    </a>
+</nav>
+
 @if (TempData["SuccessMessage"] is string success)
 {
     <div class="alert alert-success" role="status">@success</div>
@@ -40,28 +58,25 @@
 {
     <div class="alert alert-danger" role="alert">@error</div>
 }
-<form asp-action="Index" method="get" class="panel panel-pad mb-4" data-work-item-filters>
+
+<form asp-action="Index" method="get" class="panel panel-pad mb-4" role="search" aria-label="جست‌وجوی تسک‌ها">
     <div asp-validation-summary="All" class="text-danger"></div>
-    <input type="hidden" name="OnlyMine" value="@Model.OnlyMine.ToString().ToLowerInvariant()" />
-    <input type="hidden" name="PageNumber" value="1" />
-    @if (Model.Archived)
+    @foreach (var entry in filterRoute)
     {
-        <input type="hidden" name="Archived" value="true" />
+        <input type="hidden" name="@entry.Key" value="@entry.Value" />
     }
     <div class="row g-3">
         <div class="col-md-4">
             <label asp-for="SearchText" class="form-label">عنوان تسک</label>
-            <input asp-for="SearchText" class="form-control" maxlength="200"
-                   placeholder="مثلاً طراحی ورود" aria-describedby="task-title-help" />
-            <div id="task-title-help" class="form-text">واژه‌های عنوان لازم نیست کنار هم باشند.</div>
+            <input asp-for="SearchText" class="form-control" maxlength="200" placeholder="مثلاً طراحی ورود" />
         </div>
         <div class="col-md-3">
             <label asp-for="ProjectId" class="form-label">پروژه</label>
-            <select asp-for="ProjectId" asp-items="Model.Projects" class="form-select" data-apply-filter aria-describedby="task-filter-help"><option value="">همهٔ پروژه‌های من</option></select>
+            <select asp-for="ProjectId" asp-items="Model.Projects" class="form-select"><option value="">همهٔ پروژه‌های این فهرست</option></select>
         </div>
         <div class="col-md-3">
             <label asp-for="Status" class="form-label">وضعیت</label>
-            <select asp-for="Status" class="form-select" data-apply-filter aria-describedby="task-filter-help">
+            <select asp-for="Status" class="form-select">
                 <option value="">همه</option>
                 <option value="@WorkItemStatus.ToDo">انجام‌نشده</option>
                 <option value="@WorkItemStatus.InProgress">در حال انجام</option>
@@ -70,7 +85,7 @@
         </div>
         <div class="col-md-2">
             <label asp-for="Priority" class="form-label">اولویت</label>
-            <select asp-for="Priority" class="form-select" data-apply-filter aria-describedby="task-filter-help">
+            <select asp-for="Priority" class="form-select">
                 <option value="">همه</option>
                 @foreach (var priority in Enum.GetValues<WorkItemPriority>())
                 {
@@ -78,13 +93,27 @@
                 }
             </select>
         </div>
+        @if (!Model.Archived)
+        {
+            <div class="col-md-5">
+                <label asp-for="Focus" class="form-label">پیگیری تسک‌های باز</label>
+                <select asp-for="Focus" class="form-select">
+                    <option value="">همهٔ تسک‌ها</option>
+                    <option value="@WorkItemFocus.Overdue">عقب‌افتاده</option>
+                    <option value="@WorkItemFocus.DueToday">مهلت امروز</option>
+                    <option value="@WorkItemFocus.NextSevenDays">مهلت تا هفت روز آینده (با امروز)</option>
+                    <option value="@WorkItemFocus.WithDeadline">مهلت‌دار</option>
+                    <option value="@WorkItemFocus.Unassigned">بدون مسئول</option>
+                </select>
+            </div>
+        }
     </div>
-    <p id="task-filter-help" class="form-text mt-2 mb-0">با انتخاب پروژه، وضعیت یا اولویت، فهرست به‌روز می‌شود.</p>
     <div class="d-flex flex-wrap gap-2 mt-3">
         <button type="submit" class="btn btn-primary">جست‌وجو</button>
-        <a asp-action="Index" asp-route-OnlyMine="@Model.OnlyMine" asp-route-Archived="@(Model.Archived ? "true" : null)" class="btn btn-outline-secondary">پاک‌کردن فیلترها</a>
+        <a asp-action="Index" asp-all-route-data="@filterRoute" class="btn btn-outline-secondary">پاک‌کردن فیلترها</a>
     </div>
 </form>
+
 <p class="text-muted">کل نتایج: @Model.TotalCount — تعداد این صفحه: @Model.Items.Count</p>
 <section class="panel">
     @if (Model.Items.Count == 0)
@@ -94,76 +123,99 @@
             {
                 <p>فیلترهای واردشده را بررسی کنید.</p>
             }
-            else if (Model.OnlyMine && Model.PersonalCountWithoutFilters > 0)
-            {
-                <p>تسکی مطابق فیلترها پیدا نشد. @Model.PersonalCountWithoutFilters تسک بدون این فیلترها دارید.</p>
-                <a asp-action="Index" asp-route-OnlyMine="true" asp-route-Archived="@(Model.Archived ? "true" : null)">پاک‌کردن فیلترها</a>
-            }
             else if (Model.OnlyMine && !Model.HasLinkedMembership)
             {
-                <p>حساب شما هنوز به هیچ ردیف عضویتی در پروژه‌ها وصل نیست.</p>
-                @if (Model.CanCreate)
+                <h2>هنوز حساب تو به عضویت پروژه وصل نیست</h2>
+                <p>لینک دعوت را از مدیر پروژه بگیر، یا از او بخواه حسابت را به عضویتت وصل کند.</p>
+                @if (Model.HasManagedProjects)
                 {
-                    <p>از صفحهٔ اعضای پروژه، کنار ردیفی که مسئول تسک‌هاست «اتصال به حساب من» را بزنید.</p>
-                    <a asp-controller="Projects" asp-action="Index">پروژه‌ها</a>
+                    <a asp-controller="Projects" asp-action="Index">مدیریت اعضا از فهرست پروژه‌ها</a>
                 }
-                else
+            }
+            else if (Model.HasFilters)
+            {
+                <h2>با این فیلترها تسکی پیدا نشد</h2>
+                @if (Model.PersonalCountWithoutFilters > 0)
                 {
-                    <p>از مدیر پروژه بخواهید حساب ورود شما را به ردیف عضویتتان وصل کند.</p>
+                    <p>@Number(Model.PersonalCountWithoutFilters.Value) تسک من بدون این فیلترها وجود دارد.</p>
                 }
+                <a asp-action="Index" asp-all-route-data="@filterRoute">پاک‌کردن فیلترها</a>
+            }
+            else if (Model.Archived)
+            {
+                <h2>هنوز تسکی در این بایگانی نیست</h2>
+                <a asp-action="Index" asp-all-route-data="@archiveRoute">دیدن تسک‌های فعال</a>
             }
             else if (Model.OnlyMine)
             {
-                <p>در حال حاضر هیچ تسکی به عضویت متصل به حساب شما واگذار نشده است.</p>
-                <a asp-action="Index">مشاهدهٔ تسک‌های پروژه‌ها</a>
+                <h2>هنوز تسکی به تو واگذار نشده است</h2>
+                <a asp-action="Index">دیدن تسک‌های پروژه‌ها</a>
+            }
+            else if (Model.CanCreate)
+            {
+                <h2>هنوز تسکی در این فهرست نیست</h2>
+                <a asp-action="Create" class="btn btn-primary">ایجاد اولین تسک</a>
             }
             else
             {
-                <p>تسکی مطابق این فیلترها پیدا نشد.</p>
+                <h2>هنوز تسکی برای نمایش نیست</h2>
+                <a asp-controller="Projects" asp-action="Index">دیدن پروژه‌ها</a>
             }
         </div>
     }
     else
     {
-        <div class="table-responsive">
+        <div class="table-responsive" role="region" aria-label="جدول تسک‌ها؛ برای دیدن ستون‌های بیشتر پیمایش کنید" tabindex="0">
             <table class="table align-middle">
-                <thead><tr><th>شناسه</th><th>عنوان</th><th>پروژه</th><th>مسئول</th><th>وضعیت</th><th>اولویت</th><th>مهلت</th><th>عملیات</th></tr></thead>
+                <thead><tr>
+                    <th scope="col">عنوان</th><th scope="col">پروژه</th><th scope="col">مسئول</th>
+                    <th scope="col">وضعیت</th><th scope="col">اولویت</th><th scope="col">مهلت</th><th scope="col">عملیات</th>
+                </tr></thead>
                 <tbody>
                 @foreach (var item in Model.Items)
                 {
+                    var statusClass = item.Status switch
+                    {
+                        WorkItemStatus.Done => "status-done",
+                        WorkItemStatus.InProgress => "status-progress",
+                        _ => "status-todo"
+                    };
                     <tr>
-                        <td>@item.Id</td><td class="text-break"><a asp-action="Details" asp-route-id="@item.Id">@item.Title</a></td>
-                        <td class="text-break">@item.ProjectName</td>
-                        <td class="text-break">@item.AssignedMemberName</td><td>@item.StatusText</td>
+                        <th scope="row" class="text-break"><a asp-action="Details" asp-route-id="@item.Id" asp-route-returnUrl="@returnUrl"><bdi>@item.Title</bdi></a></th>
+                        <td class="text-break"><bdi>@item.ProjectName</bdi></td>
+                        <td class="text-break"><bdi>@item.AssignedMemberName</bdi></td>
+                        <td><span class="status @statusClass">@item.StatusText</span></td>
                         <td>@WorkItemLabels.Priority(item.Priority)</td>
-                        <td><bdi>@(item.DueDate?.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture) ?? "—")</bdi></td>
+                        <td>
+                            @if (item.DueDate is DateOnly dueDate)
+                            {
+                                <time dir="ltr" class="text-nowrap" datetime="@IsoDate(dueDate)">@PersianDate(dueDate)</time>
+                                @if (!Model.Archived && item.Status != WorkItemStatus.Done && dueDate <= Model.Today)
+                                {
+                                    <span class="status status-progress">@(dueDate < Model.Today ? "عقب‌افتاده" : "امروز")</span>
+                                }
+                            }
+                            else
+                            {
+                                <span aria-label="بدون مهلت">—</span>
+                            }
+                        </td>
                         <td>
                             <div class="d-flex flex-wrap gap-2">
-                                @if (item.CanManage && !Model.Archived)
-                                {
-                                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-secondary">ویرایش</a>
-                                    <a asp-action="Assign" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary">تعیین مسئول</a>
-                                }
                                 @if (item.CanChangeStatus)
                                 {
-                                    var target = item.Status switch
-                                    {
-                                        WorkItemStatus.ToDo => WorkItemStatus.InProgress,
-                                        WorkItemStatus.InProgress => WorkItemStatus.Done,
-                                        _ => WorkItemStatus.ToDo
-                                    };
-                                    var text = item.Status switch
-                                    {
-                                        WorkItemStatus.ToDo => "شروع",
-                                        WorkItemStatus.InProgress => "تکمیل",
-                                        _ => "بازگشایی"
-                                    };
+                                    var next = WorkItemLabels.NextStatus(item.Status);
                                     <form asp-action="ChangeStatus" method="post" data-prevent-double-submit>
                                         <input type="hidden" name="id" value="@item.Id" />
-                                        <input type="hidden" name="targetStatus" value="@target" />
+                                        <input type="hidden" name="targetStatus" value="@next.Target" />
                                         <input type="hidden" name="returnUrl" value="@returnUrl" />
-                                        <button type="submit" class="btn btn-sm btn-primary">@text</button>
+                                        <button type="submit" class="btn btn-sm btn-primary" aria-label="@next.Text تسک @item.Title">@next.Text</button>
                                     </form>
+                                }
+                                @if (item.CanManage && !Model.Archived)
+                                {
+                                    <a asp-action="Edit" asp-route-id="@item.Id" asp-route-returnUrl="@returnUrl" class="btn btn-sm btn-outline-secondary">ویرایش</a>
+                                    <a asp-action="Assign" asp-route-id="@item.Id" asp-route-returnUrl="@returnUrl" class="btn btn-sm btn-outline-primary">تعیین مسئول</a>
                                 }
                             </div>
                         </td>
@@ -174,22 +226,19 @@
         </div>
     }
 </section>
-@if (Model.TotalCount > 0)
+
+@if (Model.TotalPages > 1)
 {
     <nav class="d-flex flex-wrap justify-content-between gap-3 mt-4" aria-label="صفحه‌بندی تسک‌ها">
         <span>صفحهٔ @Model.PageNumber از @Model.TotalPages</span>
         <div class="d-flex gap-2">
             @if (Model.HasPreviousPage)
             {
-                <a asp-action="Index" asp-route-PageNumber="@(Model.PageNumber - 1)" asp-route-OnlyMine="@Model.OnlyMine"
-                   asp-route-SearchText="@Model.SearchText" asp-route-ProjectId="@Model.ProjectId" asp-route-Status="@Model.Status" asp-route-Priority="@Model.Priority" asp-route-Archived="@(Model.Archived ? "true" : null)"
-                   class="btn btn-outline-secondary">قبلی</a>
+                <a asp-action="Index" asp-all-route-data="@pagingRoute" asp-route-PageNumber="@(Model.PageNumber - 1)" class="btn btn-outline-secondary">قبلی</a>
             }
             @if (Model.HasNextPage)
             {
-                <a asp-action="Index" asp-route-PageNumber="@(Model.PageNumber + 1)" asp-route-OnlyMine="@Model.OnlyMine"
-                   asp-route-SearchText="@Model.SearchText" asp-route-ProjectId="@Model.ProjectId" asp-route-Status="@Model.Status" asp-route-Priority="@Model.Priority" asp-route-Archived="@(Model.Archived ? "true" : null)"
-                   class="btn btn-outline-secondary">بعدی</a>
+                <a asp-action="Index" asp-all-route-data="@pagingRoute" asp-route-PageNumber="@(Model.PageNumber + 1)" class="btn btn-outline-secondary">بعدی</a>
             }
         </div>
     </nav>

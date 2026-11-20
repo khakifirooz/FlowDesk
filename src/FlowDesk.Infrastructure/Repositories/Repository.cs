@@ -51,10 +51,19 @@ public class Repository<TEntity> : IRepository<TEntity>
             .CountAsync(predicate);
     }
 
-    public async Task<List<TEntity>> GetPageAsync(
-        Expression<Func<TEntity, bool>> predicate,
-        int pageNumber,
-        int pageSize)
+    public Task<List<TEntity>> GetPageAsync(
+        Expression<Func<TEntity, bool>> predicate, int pageNumber, int pageSize) =>
+        ReadPageAsync(_context.Set<TEntity>().AsNoTracking().Where(predicate)
+            .OrderByDescending(entity => entity.Id), pageNumber, pageSize);
+
+    public Task<List<TEntity>> GetPageOrderedAsync<TKey>(
+        Expression<Func<TEntity, bool>> predicate, Expression<Func<TEntity, TKey>> orderBy,
+        int pageNumber, int pageSize) =>
+        ReadPageAsync(_context.Set<TEntity>().AsNoTracking().Where(predicate)
+            .OrderBy(orderBy).ThenByDescending(entity => entity.Id), pageNumber, pageSize);
+
+    private static Task<List<TEntity>> ReadPageAsync(
+        IOrderedQueryable<TEntity> query, int pageNumber, int pageSize)
     {
         if (pageNumber < 1)
             throw new ArgumentOutOfRangeException(nameof(pageNumber));
@@ -62,11 +71,7 @@ public class Repository<TEntity> : IRepository<TEntity>
         if (pageSize < 1 || pageSize > 100)
             throw new ArgumentOutOfRangeException(nameof(pageSize));
 
-        return await _context.Set<TEntity>()
-            .AsNoTracking()
-            .Where(predicate)
-            .OrderByDescending(entity => entity.Id)
-            .Skip(checked((pageNumber - 1) * pageSize))
+        return query.Skip(checked((pageNumber - 1) * pageSize))
             .Take(pageSize)
             .ToListAsync();
     }

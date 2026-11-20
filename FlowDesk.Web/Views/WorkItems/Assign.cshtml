@@ -1,6 +1,7 @@
 ﻿@model FlowDesk.Web.ViewModels.WorkItems.AssignWorkItemViewModel
 
 @{
+    string backUrl = Model.ReturnUrl ?? Url.Action("Index") ?? "/";
     ViewData["Title"] = "واگذاری تسک";
 }
 
@@ -11,7 +12,7 @@
         <p>پروژه، تسک و سپس مسئول انجام آن را انتخاب کنید.</p>
     </div>
 
-    <a asp-action="Index" class="btn btn-outline-secondary">
+    <a href="@backUrl" class="btn btn-outline-secondary">
         فهرست تسک‌ها
     </a>
 </div>
@@ -48,6 +49,7 @@
               data-options-url="@Url.Action("ProjectOptions", "WorkItems")"
               data-prevent-double-submit>
 
+            <input type="hidden" name="ReturnUrl" value="@Model.ReturnUrl" />
             <div asp-validation-summary="All"></div>
 
             <div class="mb-3">
@@ -152,8 +154,7 @@
                     ذخیرهٔ مسئول
                 </button>
 
-                <a asp-action="Index"
-                   class="btn btn-outline-secondary">
+                <a href="@backUrl" class="btn btn-outline-secondary">
                     انصراف
                 </a>
             </div>

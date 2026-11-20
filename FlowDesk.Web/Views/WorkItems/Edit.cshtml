@@ -3,6 +3,7 @@
 @model FlowDesk.Web.ViewModels.WorkItems.EditWorkItemViewModel
 
 @{
+    string backUrl = Model.ReturnUrl ?? Url.Action("Index") ?? "/";
     ViewData["Title"] = "ویرایش تسک";
 }
 
@@ -15,7 +16,7 @@
         <p>عنوان کار باید در همین پروژه تکراری نباشد.</p>
     </div>
 
-    <a asp-action="Index" class="btn btn-outline-secondary">
+    <a href="@backUrl" class="btn btn-outline-secondary">
         بازگشت به فهرست
     </a>
 </div>
@@ -29,6 +30,7 @@
 
         <input asp-for="Id" type="hidden" />
 
+        <input type="hidden" name="ReturnUrl" value="@Model.ReturnUrl" />
         <div asp-validation-summary="ModelOnly"></div>
 
         <div class="mb-4">
@@ -74,7 +76,7 @@
                 ذخیرهٔ تغییرات
             </button>
 
-            <a asp-action="Index" class="btn btn-outline-secondary">
+            <a href="@backUrl" class="btn btn-outline-secondary">
                 انصراف
             </a>
         </div>
