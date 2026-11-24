@@ -18,13 +18,19 @@ public class AccountController : Controller
 {
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly SignInManager<ApplicationUser> _signInManager;
+    private readonly AccountDeletionService _accountDeletion;
+    private readonly IConfiguration _configuration;
 
     public AccountController(
         UserManager<ApplicationUser> userManager,
-        SignInManager<ApplicationUser> signInManager)
+        SignInManager<ApplicationUser> signInManager,
+        AccountDeletionService accountDeletion,
+        IConfiguration configuration)
     {
         _userManager = userManager;
         _signInManager = signInManager;
+        _accountDeletion = accountDeletion;
+        _configuration = configuration;
     }
 
     public override void OnActionExecuting(ActionExecutingContext context)
@@ -231,6 +237,41 @@ public class AccountController : Controller
         await _signInManager.RefreshSignInAsync(account);
         TempData["SuccessMessage"] = "پروفایل ذخیره شد.";
         return RedirectToAction(nameof(Profile));
+    }
+
+    [HttpGet]
+    public IActionResult DeleteAccount() =>
+        _configuration.GetValue<bool>("Features:AccountDeletion")
+            ? View(new DeleteAccountViewModel()) : NotFound();
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteAccount(DeleteAccountViewModel model, CancellationToken cancellationToken)
+    {
+        if (!_configuration.GetValue<bool>("Features:AccountDeletion")) return NotFound();
+        if (!model.ConfirmDeletion)
+            ModelState.AddModelError(nameof(model.ConfirmDeletion), "حذف دائمی حساب را تأیید کنید.");
+        if (!ModelState.IsValid) return View(model);
+
+        var account = await _userManager.GetUserAsync(User);
+        if (account is null) return Forbid();
+
+        var result = await _accountDeletion.DeleteAsync(account, model.Password, cancellationToken);
+        if (result == AccountDeletionResult.Deleted)
+        {
+            await _signInManager.SignOutAsync();
+            return RedirectToAction("Index", "Home");
+        }
+
+        ModelState.AddModelError(string.Empty, result switch
+        {
+            AccountDeletionResult.InvalidPassword => "رمز عبور فعلی درست نیست.",
+            AccountDeletionResult.ManagesProjects => "این حساب مدیر یک یا چند پروژه است و فعلاً قابل حذف نیست.",
+            AccountDeletionResult.LinkedToProjects => "ابتدا از مدیر پروژه بخواهید اتصال حساب شما را از همهٔ پروژه‌ها قطع کند.",
+            _ => "حساب حذف نشد. صفحه را دوباره باز کنید و تلاش کنید."
+        });
+        model.Password = string.Empty;
+        ModelState.Remove(nameof(model.Password));
+        return View(model);
     }
 
     [HttpPost]

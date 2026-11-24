@@ -16,6 +16,7 @@ builder.Services.AddControllersWithViews(options => options.Filters.Add<AccessEx
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, HttpCurrentUser>();
 builder.Services.AddScoped<ProjectAccess>();
+builder.Services.AddScoped<AccountDeletionService>();
 builder.Services.AddScoped<ProjectInvitationService>();
 builder.Services.AddScoped<WorkItemReviewService>();
 builder.Services.AddScoped<ProjectMemberDiscussionService>();
@@ -45,6 +46,10 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 })
 .AddEntityFrameworkStores<FlowDeskIdentityDbContext>()
 .AddDefaultTokenProviders();
+
+// Recheck Identity cookies when the deletion preview is enabled, including other devices.
+if (builder.Configuration.GetValue<bool>("Features:AccountDeletion"))
+    builder.Services.Configure<SecurityStampValidatorOptions>(options => options.ValidationInterval = TimeSpan.Zero);
 
 builder.Services.ConfigureApplicationCookie(options =>
 {

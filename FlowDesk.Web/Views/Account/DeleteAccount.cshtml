@@ -1,0 +1,25 @@
+@model FlowDesk.Web.ViewModels.Account.DeleteAccountViewModel
+@{
+    ViewData["Title"] = "حذف حساب";
+}
+<div class="page-head">
+    <div>
+        <h1>حذف حساب</h1>
+        <p>حساب ورود، پروفایل و دعوت‌نامه‌های مرتبط حذف می‌شوند. پروژه‌ها، تسک‌ها و سوابق تیم با نام ثبت‌شده باقی می‌مانند.</p>
+    </div>
+</div>
+<section class="panel panel-pad form-panel">
+    <form asp-action="DeleteAccount" method="post" data-prevent-double-submit>
+        <div asp-validation-summary="All" class="text-danger" role="alert"></div>
+        <div class="mb-3">
+            <label asp-for="Password" class="form-label"></label>
+            <input asp-for="Password" class="form-control" autocomplete="current-password" dir="ltr" />
+        </div>
+        <div class="form-check mb-3">
+            <input asp-for="ConfirmDeletion" class="form-check-input" />
+            <label asp-for="ConfirmDeletion" class="form-check-label">می‌دانم که حذف حساب قابل بازگشت نیست.</label>
+        </div>
+        <button type="submit" class="btn btn-danger">حذف دائمی حساب</button>
+        <a asp-action="Profile" class="btn btn-outline-secondary">انصراف</a>
+    </form>
+</section>

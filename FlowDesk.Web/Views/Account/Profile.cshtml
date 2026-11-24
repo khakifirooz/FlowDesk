@@ -1,4 +1,5 @@
 @model FlowDesk.Web.ViewModels.Account.ProfileViewModel
+@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
 @{
     ViewData["Title"] = "پروفایل";
 }
@@ -41,6 +42,14 @@
         <button type="submit" class="btn btn-primary mt-4">ذخیرهٔ پروفایل</button>
     </form>
 </section>
+@if (Configuration["Features:AccountDeletion"]?.Equals("true", StringComparison.OrdinalIgnoreCase) == true)
+{
+    <section class="panel panel-pad form-panel mt-4">
+        <h2 class="h5">حذف حساب</h2>
+        <p>در صفحهٔ بعد اثر حذف حساب را می‌بینید و با رمز فعلی تأیید می‌کنید.</p>
+        <a asp-action="DeleteAccount" class="btn btn-outline-danger">حذف حساب</a>
+    </section>
+}
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
 }

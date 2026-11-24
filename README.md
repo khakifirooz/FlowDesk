@@ -1,126 +1,93 @@
 # FlowDesk
 
-### سامانه مدیریت پروژه‌ها، اعضای تیم و وظایف
+FlowDesk یک فضای کار فارسی برای مدیریت پروژه، واگذاری تسک و پیگیری کار تیم است. مدیر پروژه می‌تواند تحویل‌ها، مهلت‌ها و وضعیت کار اعضا را از یک داشبورد ببیند؛ اعضا هم از بخش «تسک‌های من» کارهای واگذارشده را دنبال می‌کنند.
 
-**FlowDesk** یک برنامه تحت وب برای سامان‌دهی کارهای تیمی است. در این سامانه می‌توان پروژه تعریف کرد، اعضای تیم را مدیریت کرد، وظایف هر پروژه را ثبت و پیگیری کرد و مسئول انجام هر وظیفه را مشخص کرد.
+**[مشاهدهٔ دمو](https://mehrshadkhaki-001-site1.ctempurl.com/)** · [نسخه‌ها](https://github.com/khakifirooz/FlowDesk/releases)
 
-`C#` · `ASP.NET Core / .NET 10` · `Entity Framework Core` · `SQL Server` · `Onion Architecture` · `RTL Interface`
+![صفحهٔ شروع FlowDesk با نمونه‌ای از پیشرفت پروژه](docs/images/landing-current.png)
 
-![نمای اصلی سامانه FlowDesk](docs/images/home.jpg)
-
-## قابلیت‌های فعلی
+## قابلیت‌ها
 
 | بخش | امکانات |
-| :--- | :--- |
-| **پروژه‌ها** | مشاهده فهرست پروژه‌ها، ایجاد پروژه و ویرایش نام آن |
-| **اعضای تیم** | ثبت عضو، نمایش اعضا و حذف عضو از فهرست |
-| **مدیریت وظایف** | ایجاد وظیفه، مشاهده وظایف پروژه‌ها و ویرایش عنوان |
-| **جست‌وجو و فیلتر** | جست‌وجوی وظیفه بر اساس عنوان و فیلتر بر اساس پروژه و وضعیت |
-| **واگذاری وظیفه** | انتخاب پروژه و وظیفه، سپس انتخاب مسئول از اعضای پروژه |
-| **پیگیری پیشرفت** | نمایش وضعیت وظایف و انجام عملیات شروع یا تکمیل بر اساس وضعیت فعلی |
+| --- | --- |
+| حساب و پروفایل | ثبت‌نام و ورود با ایمیل، تعیین نام نمایشی و ویرایش عنوان شغلی و معرفی کوتاه |
+| پروژه و تیم | ایجاد پروژه، ثبت افراد، دعوت یا اتصال حساب به عضویت پروژه و تأیید درخواست عضویت |
+| تسک‌ها | واگذاری به اعضای همان پروژه، تعیین مهلت و اولویت، جست‌وجو، فیلتر، تغییر وضعیت و بایگانی |
+| همکاری و ارزیابی | ثبت فعالیت و دیدگاه، ثبت نمره یا بازخورد برای تحویل تسک از سوی مدیر پروژه |
+| داشبورد مدیر | پیشرفت پروژه‌ها، کارهای عقب‌افتاده یا بدون مسئول، بار کاری اعضا و تحویل‌های منتظر بررسی |
 
-## تصاویر محیط برنامه
+## تور تصویری
 
-### ۱. مدیریت پروژه‌ها
+<details>
+<summary>فضای کار و پروژه‌ها</summary>
 
-در بخش پروژه‌ها، فهرست پروژه‌های تعریف‌شده همراه با عملیات مرتبط نمایش داده می‌شود.
+![صفحهٔ فضای کار](docs/images/workspace-current.png)
 
-![فهرست و مدیریت پروژه‌های FlowDesk](docs/images/projects.jpg)
+![فهرست پروژه‌ها](docs/images/projects-current.png)
 
-### ۲. فهرست و مدیریت وظایف
+</details>
 
-وظایف بر اساس پروژه، عنوان و وضعیت قابل جست‌وجو و فیلتر هستند. عملیات مربوط به هر وظیفه در همان فهرست در دسترس است.
+<details>
+<summary>تسک‌های من و ارزیابی تحویل</summary>
 
-![فیلتر و مدیریت وظایف FlowDesk](docs/images/tasks.jpg)
+![تسک‌های واگذارشده به کاربر و فیلترهای فهرست](docs/images/tasks-current.png)
 
-### ۳. واگذاری وظیفه
+![جزئیات تسک پس از ثبت ارزیابی](docs/images/task-review-current.png)
 
-فرایند واگذاری در سه مرحله انجام می‌شود: **انتخاب پروژه ← انتخاب وظیفه ← تعیین مسئول**. فهرست مسئول‌ها بر اساس اعضای پروژه انتخاب‌شده نمایش داده می‌شود.
+</details>
 
-![صفحه واگذاری وظیفه FlowDesk](docs/images/assign-task.jpg)
+<details>
+<summary>داشبورد مدیر</summary>
 
-### ۴. مدیریت اعضای تیم
+![شاخص‌های تسک‌ها، ترکیب وضعیت و پیشرفت پروژه‌ها](docs/images/dashboard-current.png)
 
-در این صفحه می‌توان اعضای ثبت‌شده را مشاهده و مدیریت کرد.
+</details>
 
-![فهرست اعضای تیم FlowDesk](docs/images/team-members.jpg)
+## معماری
 
-## ساختار فنی پروژه
-
-پروژه بر اساس الگوی **Onion Architecture** سازمان‌دهی شده است. هدف این ساختار، جدا نگه داشتن قوانین دامنه از رابط کاربری و جزئیات دسترسی به داده است.
+پروژه از **C# / .NET 10**، **ASP.NET Core MVC**، **ASP.NET Core Identity**، **EF Core** و **SQL Server** استفاده می‌کند. رابط کاربری فارسی و راست‌به‌چپ است.
 
 | لایه | مسئولیت |
-| :--- | :--- |
-| `FlowDesk.Domain` | موجودیت‌ها، وضعیت‌ها و قواعد اصلی کسب‌وکار |
-| `FlowDesk.Application` | سناریوهای کاربردی، سرویس‌ها، DTOها و قراردادهای Repository |
-| `FlowDesk.Infrastructure` | پیاده‌سازی دسترسی به داده با EF Core و SQL Server |
-| `FlowDesk.Web` | رابط کاربری ASP.NET Core MVC، کنترلرها و صفحات |
+| --- | --- |
+| `src/FlowDesk.Domain` | موجودیت‌ها و قواعد دامنه، از جمله وضعیت تسک و اعتبار دعوت |
+| `src/FlowDesk.Application` | سرویس‌ها، بررسی دسترسی پروژه، قراردادها و مدل‌های انتقال داده |
+| `src/FlowDesk.Infrastructure` | پیاده‌سازی دسترسی به داده، Identity و Migrationها |
+| `FlowDesk.Web` | کنترلرها، فرم‌ها، صفحات Razor و تنظیمات برنامه |
 
-### ساختار پوشه‌ها
-
-```text
-FlowDesk/
-├── FlowDesk.Web/           # ASP.NET Core MVC, Controllers, Views
-├── src/
-│   ├── FlowDesk.Domain/    # Entities, business rules
-│   ├── FlowDesk.Application/  # Services, DTOs, interfaces
-│   └── FlowDesk.Infrastructure/  # EF Core, DbContext, migrations
-└── FlowDesk.slnx
-```
-
-**اصل وابستگی:** لایه‌های داخلی به جزئیات رابط وب یا پایگاه داده وابسته نیستند. قراردادهای موردنیاز در لایه Application تعریف می‌شوند و پیاده‌سازی آن‌ها در Infrastructure قرار می‌گیرد.
-
-## قواعد اصلی سامانه
-
-- هر وظیفه به یک پروژه مشخص تعلق دارد.
-- هنگام واگذاری وظیفه، فرد انتخاب‌شده باید عضو همان پروژه باشد.
-- وضعیت وظیفه از میان `ToDo`، `InProgress` و `Done` مدیریت می‌شود.
-- تغییرات داده‌ها از طریق سرویس‌ها و لایه دسترسی به داده ثبت می‌شوند.
-- نمایش و اعتبارسنجی فرم‌ها به‌تنهایی جایگزین کنترل قواعد در سمت سرور نیست.
-
-## فناوری‌های مورد استفاده
-
-- **Backend:** C# و ASP.NET Core (.NET 10)
-- **Data Access:** Entity Framework Core
-- **Database:** Microsoft SQL Server
-- **UI:** ASP.NET Core MVC و صفحات راست‌به‌چپ فارسی
-- **Architecture:** Onion Architecture، Dependency Injection و Repository Pattern
+ثبت فرد در فهرست تیم به او دسترسی ورود نمی‌دهد؛ دسترسی به پروژه به عضویت همان پروژه و اتصال آن به حساب کاربری وابسته است.
 
 ## اجرای محلی
 
-**پیش‌نیازها:** .NET SDK 10، SQL Server و یک محیط توسعه مانند Visual Studio.
+**پیش‌نیازها:** .NET SDK 10، SQL Server و ابزار `dotnet-ef` نسخهٔ ۱۰. دستورها را از پوشهٔ اصلی مخزن اجرا کنید.
 
-۱. مخزن پروژه را دریافت و در پوشه اصلی آن ترمینال باز کنید.
-
-۲. رشته اتصال SQL Server را متناسب با تنظیمات محیط خود در پیکربندی برنامه تنظیم کنید. **اطلاعات اتصال واقعی، رمز عبور یا فایل‌های محرمانه را در Git ثبت نکنید.**
-
-۳. وابستگی‌ها را بازیابی و پروژه را بیلد کنید:
+۱. مقدار `ConnectionStrings:FlowDeskConnection` را برای محیط توسعه تنظیم کنید. نمونهٔ زیر را با مشخصات دیتابیس محلی خود جایگزین کنید. رمز محیط واقعی را در مخزن ذخیره نکنید.
 
 ```bash
-dotnet restore FlowDesk.slnx
-dotnet build FlowDesk.slnx
+dotnet user-secrets init --project FlowDesk.Web
+dotnet user-secrets set "ConnectionStrings:FlowDeskConnection" "Server=YOUR_LOCAL_SQL_SERVER;Database=FlowDesk;Trusted_Connection=True;TrustServerCertificate=True" --project FlowDesk.Web
 ```
 
-۴. دیتابیس را با Migrationهای موجود آماده کنید. ابزار `dotnet-ef` باید نصب باشد:
+۲. هر دو مجموعهٔ Migration را روی همان دیتابیس اعمال کنید. جدول‌های برنامه و Identity تاریخچهٔ Migration جدا دارند.
 
 ```bash
-dotnet ef database update --project src/FlowDesk.Infrastructure --startup-project FlowDesk.Web
+dotnet ef database update --context FlowDeskDbContext --project src/FlowDesk.Infrastructure --startup-project FlowDesk.Web -- --environment Development
+dotnet ef database update --context FlowDeskIdentityDbContext --project src/FlowDesk.Infrastructure --startup-project FlowDesk.Web -- --environment Development
 ```
 
-۵. پروژه وب را اجرا کنید:
+۳. برنامه را با پروفایل HTTPS اجرا کنید و از صفحهٔ ورود یک حساب بسازید.
 
 ```bash
-dotnet run --project FlowDesk.Web/FlowDesk.Web.csproj
+dotnet dev-certs https --trust
+dotnet run --project FlowDesk.Web --launch-profile https
 ```
 
-> برای اجرا، SQL Server محلی و رشته اتصال معتبر ضروری است. تنظیمات نمونه فقط برای محیط توسعه هستند.
+## تست و انتشار
 
-> **امنیت:** نسخه فعلی صرفاً نمونه توسعه‌ای است و ورود/مجوزدهی کاربران در کد فعلی پیاده‌سازی نشده است؛ بدون افزودن Authentication و Authorization نباید روی اینترنت عمومی منتشر شود.
+```bash
+dotnet test FlowDesk.slnx -c Release
+dotnet publish FlowDesk.Web -c Release -o artifacts/publish
+```
 
-## وضعیت توسعه
+تست‌های xUnit قواعد وضعیت تسک، تأیید دعوت و ارزیابی را بررسی می‌کنند. تست‌های حذف حساب از SQLite در حافظه استفاده می‌کنند و به دیتابیس هاست دست نمی‌زنند.
 
-FlowDesk در حال توسعه و تکمیل است. بخش‌های پروژه‌ها، اعضای تیم، فهرست وظایف و واگذاری وظیفه در تصاویر بالا نمایش داده شده‌اند. احراز هویت، کنترل دسترسی مبتنی بر نقش، تست‌های خودکار و استقرار امن هنوز جزو قابلیت‌های تأییدشده این نسخه نیستند. نمودارها و مستندات توسعه نیز نباید با امکانات پیاده‌سازی‌شده اشتباه گرفته شوند.
-
----
-
-**FlowDesk** — مدیریت پروژه و کارهای تیمی در یک محیط یکپارچه.
+حذف حساب فعلاً قابلیت آزمایشی و خاموش است. برای آزمایش با حساب و دیتابیس جدا، متغیر محیطی `Features__AccountDeletion=true` را تنظیم کنید. حذف به تأیید و رمز فعلی نیاز دارد؛ تا وقتی حساب مدیر یک پروژه یا متصل به عضویت پروژه باشد، مسدود می‌ماند. پروژه‌ها، تسک‌ها و سوابق مشترک با نام ثبت‌شده حفظ می‌شوند.

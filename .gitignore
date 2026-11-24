@@ -361,3 +361,5 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+# IIS deployment output
+/FlowDesk.Web/FlowDesk-Ready.zip
